@@ -54,7 +54,7 @@
     CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
     CVPixelBufferLockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
 
-    size_t width = CVPixelBufferGetWidth(imageBuffer);
+    size_t width = CVPixelBufferGetWidth(imageBuffer);//+8; //// TODO I had to add 8 yere, y tho
     size_t height = CVPixelBufferGetHeight(imageBuffer);
     char *baseBuffer = (char *)CVPixelBufferGetBaseAddress(imageBuffer);
     
@@ -98,10 +98,13 @@
         // and draw them into the image (samplebuffer)
         for (unsigned long k = 0; k < shape.num_parts(); k++) {
             dlib::point p = shape.part(k);
-            draw_solid_circle(img, p, 3, dlib::rgb_pixel(0, 255, 255));
+            draw_solid_circle(img, p, 3, color_for_feature(k));
         }
     }
-    
+
+    dlib::rectangle testRect(0,0,100,100);
+    fill_rect(img, testRect, dlib::rgb_pixel(255, 0, 0));
+
     // lets put everything back where it belongs
     CVPixelBufferLockBaseAddress(imageBuffer, 0);
 
@@ -122,6 +125,24 @@
         position++;
     }
     CVPixelBufferUnlockBaseAddress(imageBuffer, 0);
+}
+
+dlib::rgb_pixel color_for_feature(unsigned long index) {
+    if (index < 17) { // jawline
+        return dlib::rgb_pixel(0, 255, 255);
+    } else if (index < 22) { // left eyebrow
+        return dlib::rgb_pixel(255, 0, 0);
+    } else if (index < 27) { // right eyebrow
+        return dlib::rgb_pixel(0, 255, 0);
+    } else if (index < 36) { // nose
+        return dlib::rgb_pixel(255, 255, 0);
+    } else if (index < 42) { // left eye
+        return dlib::rgb_pixel(0, 0, 255);
+    } else if (index < 48) { // right eye
+        return dlib::rgb_pixel(0, 0, 0);
+    } else {
+        return dlib::rgb_pixel(255, 255, 255);
+    }
 }
 
 + (std::vector<dlib::rectangle>)convertCGRectValueArray:(NSArray<NSValue *> *)rects {

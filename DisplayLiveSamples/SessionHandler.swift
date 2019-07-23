@@ -43,6 +43,10 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
         }
         if session.canAddOutput(output) {
             session.addOutput(output)
+            if output.connections.count > 0 {
+                output.connections[0].videoOrientation = .portrait
+                output.connections[0].isVideoMirrored = true
+            }
         }
         if session.canAddOutput(metaOutput) {
             session.addOutput(metaOutput)
@@ -51,7 +55,7 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
         session.commitConfiguration()
         
         let settings: [AnyHashable: Any] = [kCVPixelBufferPixelFormatTypeKey as AnyHashable: Int(kCVPixelFormatType_32BGRA)]
-        output.videoSettings = settings as! [String : Any]
+        output.videoSettings = settings as? [String : Any]
     
         // availableMetadataObjectTypes change when output is added to session.
         // before it is added, availableMetadataObjectTypes is empty
@@ -63,11 +67,13 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
     }
     
     // MARK: AVCaptureVideoDataOutputSampleBufferDelegate
-    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+    func captureOutput(_ output: AVCaptureOutput,
+                       didOutput sampleBuffer: CMSampleBuffer,
+                       from connection: AVCaptureConnection) {
 
         if !currentMetadata.isEmpty {
             let boundsArray = currentMetadata
-                .flatMap { $0 as? AVMetadataFaceObject }
+                .compactMap { $0 as? AVMetadataFaceObject }
                 .map { (faceObject) -> NSValue in
                     let convertedObject = output.transformedMetadataObject(for: faceObject, connection: connection)
                     return NSValue(cgRect: convertedObject!.bounds)
