@@ -11,6 +11,8 @@
 
 #include <dlib/image_processing.h>
 #include <dlib/image_io.h>
+#include <dlib/opencv.h>
+#include <opencv2/calib3d.hpp>
 
 @interface DlibWrapper ()
 
@@ -54,7 +56,7 @@
     CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
     CVPixelBufferLockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
 
-    size_t width = CVPixelBufferGetWidth(imageBuffer);//+8; //// TODO I had to add 8 yere, y tho
+    size_t width = CVPixelBufferGetWidth(imageBuffer)+8; //// TODO I had to add 8 here, y tho
     size_t height = CVPixelBufferGetHeight(imageBuffer);
     char *baseBuffer = (char *)CVPixelBufferGetBaseAddress(imageBuffer);
     
@@ -88,9 +90,8 @@
     std::vector<dlib::rectangle> convertedRectangles = [DlibWrapper convertCGRectValueArray:rects];
     
     // for every detected face
-    for (unsigned long j = 0; j < convertedRectangles.size(); ++j)
-    {
-        dlib::rectangle oneFaceRect = convertedRectangles[j];
+    if (convertedRectangles.size() > 0) {
+        dlib::rectangle oneFaceRect = convertedRectangles[0];
         
         // detect all landmarks
         dlib::full_object_detection shape = sp(img, oneFaceRect);
@@ -100,8 +101,12 @@
             dlib::point p = shape.part(k);
             draw_solid_circle(img, p, 3, color_for_feature(k));
         }
+        
+        // reverse-project the face points to determine pose
+        [self.class getHeadPose:shape];
     }
 
+    // Use this to calibrate Jesse's wtf hack / TODO remove this (See above TODO)
     dlib::rectangle testRect(0,0,100,100);
     fill_rect(img, testRect, dlib::rgb_pixel(255, 0, 0));
 
@@ -125,6 +130,104 @@
         position++;
     }
     CVPixelBufferUnlockBaseAddress(imageBuffer, 0);
+}
+
++ (void)getHeadPose:(dlib::full_object_detection)shape
+{
+    // ------------------------------------------
+    // TODO: Move this to an initialization step
+
+    //Intrisics can be calculated using opencv sample code under opencv/sources/samples/cpp/tutorial_code/calib3d
+    //Normally, you can also apprximate fx and fy by image width, cx by half image width, cy by half image height instead
+    double K[9] = { 6.5308391993466671e+002, 0.0, 3.1950000000000000e+002, 0.0, 6.5308391993466671e+002, 2.3950000000000000e+002, 0.0, 0.0, 1.0 };
+    double D[5] = { 7.0834633684407095e-002, 6.9140193737175351e-002, 0.0, 0.0, -1.3073460323689292e+000 };
+    //fill in cam intrinsics and distortion coefficients
+    cv::Mat cam_matrix = cv::Mat(3, 3, CV_64FC1, K);
+    cv::Mat dist_coeffs = cv::Mat(5, 1, CV_64FC1, D);
+
+    //fill in 3D ref points(world coordinates), model referenced from http://aifi.isr.uc.pt/Downloads/OpenGL/glAnthropometric3DModel.cpp
+    std::vector<cv::Point3d> object_pts;
+    object_pts.push_back(cv::Point3d(6.825897, 6.760612, 4.402142));     //#33 left brow left corner
+    object_pts.push_back(cv::Point3d(1.330353, 7.122144, 6.903745));     //#29 left brow right corner
+    object_pts.push_back(cv::Point3d(-1.330353, 7.122144, 6.903745));    //#34 right brow left corner
+    object_pts.push_back(cv::Point3d(-6.825897, 6.760612, 4.402142));    //#38 right brow right corner
+    object_pts.push_back(cv::Point3d(5.311432, 5.485328, 3.987654));     //#13 left eye left corner
+    object_pts.push_back(cv::Point3d(1.789930, 5.393625, 4.413414));     //#17 left eye right corner
+    object_pts.push_back(cv::Point3d(-1.789930, 5.393625, 4.413414));    //#25 right eye left corner
+    object_pts.push_back(cv::Point3d(-5.311432, 5.485328, 3.987654));    //#21 right eye right corner
+    object_pts.push_back(cv::Point3d(2.005628, 1.409845, 6.165652));     //#55 nose left corner
+    object_pts.push_back(cv::Point3d(-2.005628, 1.409845, 6.165652));    //#49 nose right corner
+    object_pts.push_back(cv::Point3d(2.774015, -2.080775, 5.048531));    //#43 mouth left corner
+    object_pts.push_back(cv::Point3d(-2.774015, -2.080775, 5.048531));   //#39 mouth right corner
+    object_pts.push_back(cv::Point3d(0.000000, -3.116408, 6.097667));    //#45 mouth central bottom corner
+    object_pts.push_back(cv::Point3d(0.000000, -7.415691, 4.070434));    //#6 chin corner
+
+    //2D ref points(image coordinates), referenced from detected facial feature
+    std::vector<cv::Point2d> image_pts;
+
+    //result
+    cv::Mat rotation_vec;                           //3 x 1
+    cv::Mat rotation_mat;                           //3 x 3 R
+    cv::Mat translation_vec;                        //3 x 1 T
+    cv::Mat pose_mat = cv::Mat(3, 4, CV_64FC1);     //3 x 4 R | T
+    cv::Mat euler_angle = cv::Mat(3, 1, CV_64FC1);
+
+    //reproject 3D points world coordinate axis to verify result pose
+    std::vector<cv::Point3d> reprojectsrc;
+    reprojectsrc.push_back(cv::Point3d(10.0, 10.0, 10.0));
+    reprojectsrc.push_back(cv::Point3d(10.0, 10.0, -10.0));
+    reprojectsrc.push_back(cv::Point3d(10.0, -10.0, -10.0));
+    reprojectsrc.push_back(cv::Point3d(10.0, -10.0, 10.0));
+    reprojectsrc.push_back(cv::Point3d(-10.0, 10.0, 10.0));
+    reprojectsrc.push_back(cv::Point3d(-10.0, 10.0, -10.0));
+    reprojectsrc.push_back(cv::Point3d(-10.0, -10.0, -10.0));
+    reprojectsrc.push_back(cv::Point3d(-10.0, -10.0, 10.0));
+
+    //reprojected 2D points
+    std::vector<cv::Point2d> reprojectdst;
+    reprojectdst.resize(8);
+
+    //temp buf for decomposeProjectionMatrix()
+    cv::Mat out_intrinsics = cv::Mat(3, 3, CV_64FC1);
+    cv::Mat out_rotation = cv::Mat(3, 3, CV_64FC1);
+    cv::Mat out_translation = cv::Mat(3, 1, CV_64FC1);
+
+    // -----------------------------------------------------------------
+
+    //fill in 2D ref points, annotations follow https://ibug.doc.ic.ac.uk/resources/300-W/
+    image_pts.push_back(cv::Point2d(shape.part(17).x(), shape.part(17).y())); //#17 left brow left corner
+    image_pts.push_back(cv::Point2d(shape.part(21).x(), shape.part(21).y())); //#21 left brow right corner
+    image_pts.push_back(cv::Point2d(shape.part(22).x(), shape.part(22).y())); //#22 right brow left corner
+    image_pts.push_back(cv::Point2d(shape.part(26).x(), shape.part(26).y())); //#26 right brow right corner
+    image_pts.push_back(cv::Point2d(shape.part(36).x(), shape.part(36).y())); //#36 left eye left corner
+    image_pts.push_back(cv::Point2d(shape.part(39).x(), shape.part(39).y())); //#39 left eye right corner
+    image_pts.push_back(cv::Point2d(shape.part(42).x(), shape.part(42).y())); //#42 right eye left corner
+    image_pts.push_back(cv::Point2d(shape.part(45).x(), shape.part(45).y())); //#45 right eye right corner
+    image_pts.push_back(cv::Point2d(shape.part(31).x(), shape.part(31).y())); //#31 nose left corner
+    image_pts.push_back(cv::Point2d(shape.part(35).x(), shape.part(35).y())); //#35 nose right corner
+    image_pts.push_back(cv::Point2d(shape.part(48).x(), shape.part(48).y())); //#48 mouth left corner
+    image_pts.push_back(cv::Point2d(shape.part(54).x(), shape.part(54).y())); //#54 mouth right corner
+    image_pts.push_back(cv::Point2d(shape.part(57).x(), shape.part(57).y())); //#57 mouth central bottom corner
+    image_pts.push_back(cv::Point2d(shape.part(8).x(), shape.part(8).y()));   //#8 chin corner
+
+    //calc pose
+    cv::solvePnP(object_pts, image_pts, cam_matrix, dist_coeffs, rotation_vec, translation_vec);
+
+    //reproject
+    cv::projectPoints(reprojectsrc, rotation_vec, translation_vec, cam_matrix, dist_coeffs, reprojectdst);
+
+    //calc euler angle
+    cv::Rodrigues(rotation_vec, rotation_mat);
+    cv::hconcat(rotation_mat, translation_vec, pose_mat);
+    cv::decomposeProjectionMatrix(pose_mat, out_intrinsics, out_rotation, out_translation, cv::noArray(), cv::noArray(), cv::noArray(), euler_angle);
+    NSLog(@"%0.2f, %0.2f, %0.2f, %0.2f, %0.2f, %0.2f",
+          euler_angle.at<double>(0),
+          euler_angle.at<double>(1),
+          euler_angle.at<double>(2),
+          out_translation.at<double>(0),
+          out_translation.at<double>(1),
+          out_translation.at<double>(2)
+          );
 }
 
 dlib::rgb_pixel color_for_feature(unsigned long index) {
