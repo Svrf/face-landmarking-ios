@@ -14,6 +14,8 @@
 #include <dlib/opencv.h>
 #include <opencv2/calib3d.hpp>
 
+#include "OneEuroFaceFilter.h"
+
 @interface DlibWrapper ()
 
 @property (assign) BOOL prepared;
@@ -23,6 +25,8 @@
 @end
 @implementation DlibWrapper {
     dlib::shape_predictor sp;
+
+    double frame_number;
 }
 
 
@@ -30,6 +34,7 @@
     self = [super init];
     if (self) {
         _prepared = NO;
+        frame_number = 0;
     }
     return self;
 }
@@ -58,7 +63,6 @@
 
     size_t width = CVPixelBufferGetWidth(imageBuffer)+8; //// TODO I had to add 8 here, y tho
     size_t height = CVPixelBufferGetHeight(imageBuffer);
-    NSLog(@"Image dimensions: %zu / %zu", width, height);
     char *baseBuffer = (char *)CVPixelBufferGetBaseAddress(imageBuffer);
     
     // set_size expects rows, cols format
@@ -90,21 +94,26 @@
     // convert the face bounds list to dlib format
     std::vector<dlib::rectangle> convertedRectangles = [DlibWrapper convertCGRectValueArray:rects];
     
-    // for every detected face
+    // for the first detected face
     if (convertedRectangles.size() > 0) {
         dlib::rectangle oneFaceRect = convertedRectangles[0];
-        
+        std::vector<dlib::point> smoothed_points;
+
         // detect all landmarks
         dlib::full_object_detection shape = sp(img, oneFaceRect);
-        
+
         // and draw them into the image (samplebuffer)
-        for (unsigned long k = 0; k < shape.num_parts(); k++) {
+        for (unsigned int k = 0; k < shape.num_parts(); k++) {
             dlib::point p = shape.part(k);
-            draw_solid_circle(img, p, 3, color_for_feature(k));
+            double smooth_x = filter((double)p.x(), (double)frame_number, k*2);
+            double smooth_y = filter((double)p.y(), (double)frame_number, k*2+1);
+            dlib::point smooth_p((unsigned long)smooth_x, (unsigned long)smooth_y);
+            smoothed_points.push_back(smooth_p);
+            draw_solid_circle(img, smooth_p, 3, color_for_feature(k));
         }
-        
+
         // reverse-project the face points to determine pose
-        [self updateHeadPose:shape];
+        [self updateHeadPose:smoothed_points];
     }
 
     // Use this to calibrate Jesse's wtf hack / TODO remove this (See above TODO)
@@ -131,9 +140,46 @@
         position++;
     }
     CVPixelBufferUnlockBaseAddress(imageBuffer, 0);
+
+    frame_number += 0.03;
 }
 
-- (void)updateHeadPose:(dlib::full_object_detection &)shape
+dlib::rgb_pixel color_for_feature(unsigned long index) {
+    if (index < 17) { // jawline
+        return dlib::rgb_pixel(0, 255, 255);
+    } else if (index < 22) { // left eyebrow
+        return dlib::rgb_pixel(255, 0, 0);
+    } else if (index < 27) { // right eyebrow
+        return dlib::rgb_pixel(0, 255, 0);
+    } else if (index < 36) { // nose
+        return dlib::rgb_pixel(255, 255, 0);
+    } else if (index < 42) { // left eye
+        return dlib::rgb_pixel(0, 0, 255);
+    } else if (index < 48) { // right eye
+        return dlib::rgb_pixel(0, 0, 0);
+    } else {
+        return dlib::rgb_pixel(255, 255, 255);
+    }
+}
+
++ (std::vector<dlib::rectangle>)convertCGRectValueArray:(NSArray<NSValue *> *)rects {
+    std::vector<dlib::rectangle> myConvertedRects;
+    for (NSValue *rectValue in rects) {
+        CGRect rect = [rectValue CGRectValue];
+        long left = rect.origin.x;
+        long top = rect.origin.y;
+        long right = left + rect.size.width;
+        long bottom = top + rect.size.height;
+        dlib::rectangle dlibRect(left, top, right, bottom);
+
+        myConvertedRects.push_back(dlibRect);
+    }
+    return myConvertedRects;
+}
+
+// MARK: - Head pose
+
+- (void)updateHeadPose:(std::vector<dlib::point> &)shape
 {
     // ------------------------------------------
     // TODO: Move this to an initialization step
@@ -196,32 +242,20 @@
     // -----------------------------------------------------------------
 
     //fill in 2D ref points, annotations follow https://ibug.doc.ic.ac.uk/resources/300-W/
-    image_pts.push_back(cv::Point2d(shape.part(17).x(), shape.part(17).y())); //#17 left brow left corner
-    image_pts.push_back(cv::Point2d(shape.part(21).x(), shape.part(21).y())); //#21 left brow right corner
-    image_pts.push_back(cv::Point2d(shape.part(22).x(), shape.part(22).y())); //#22 right brow left corner
-    image_pts.push_back(cv::Point2d(shape.part(26).x(), shape.part(26).y())); //#26 right brow right corner
-    image_pts.push_back(cv::Point2d(shape.part(36).x(), shape.part(36).y())); //#36 left eye left corner
-    image_pts.push_back(cv::Point2d(shape.part(39).x(), shape.part(39).y())); //#39 left eye right corner
-    image_pts.push_back(cv::Point2d(shape.part(42).x(), shape.part(42).y())); //#42 right eye left corner
-    image_pts.push_back(cv::Point2d(shape.part(45).x(), shape.part(45).y())); //#45 right eye right corner
-    image_pts.push_back(cv::Point2d(shape.part(31).x(), shape.part(31).y())); //#31 nose left corner
-    image_pts.push_back(cv::Point2d(shape.part(35).x(), shape.part(35).y())); //#35 nose right corner
-    image_pts.push_back(cv::Point2d(shape.part(48).x(), shape.part(48).y())); //#48 mouth left corner
-    image_pts.push_back(cv::Point2d(shape.part(54).x(), shape.part(54).y())); //#54 mouth right corner
-    image_pts.push_back(cv::Point2d(shape.part(57).x(), shape.part(57).y())); //#57 mouth central bottom corner
-    image_pts.push_back(cv::Point2d(shape.part(8).x(), shape.part(8).y()));   //#8 chin corner
-
-    double maxX = 0;
-    double minX = 1000000;
-    double maxY = 0;
-    double minY = 1000000;
-    for (unsigned long i = 0; i < image_pts.size(); i++) {
-        maxX = MAX(image_pts[i].x, maxX);
-        minX = MIN(image_pts[i].x, minX);
-        maxY = MAX(image_pts[i].y, maxY);
-        minY = MIN(image_pts[i].y, minY);
-    }
-    NSLog(@"Rect: (%0.2f, %0.2f, %0.2f, %0.2f)", minX, minY, maxX, maxY);
+    image_pts.push_back(cv::Point2d(shape[17].x(), shape[17].y())); //#17 left brow left corner
+    image_pts.push_back(cv::Point2d(shape[21].x(), shape[21].y())); //#21 left brow right corner
+    image_pts.push_back(cv::Point2d(shape[22].x(), shape[22].y())); //#22 right brow left corner
+    image_pts.push_back(cv::Point2d(shape[26].x(), shape[26].y())); //#26 right brow right corner
+    image_pts.push_back(cv::Point2d(shape[36].x(), shape[36].y())); //#36 left eye left corner
+    image_pts.push_back(cv::Point2d(shape[39].x(), shape[39].y())); //#39 left eye right corner
+    image_pts.push_back(cv::Point2d(shape[42].x(), shape[42].y())); //#42 right eye left corner
+    image_pts.push_back(cv::Point2d(shape[45].x(), shape[45].y())); //#45 right eye right corner
+    image_pts.push_back(cv::Point2d(shape[31].x(), shape[31].y())); //#31 nose left corner
+    image_pts.push_back(cv::Point2d(shape[35].x(), shape[35].y())); //#35 nose right corner
+    image_pts.push_back(cv::Point2d(shape[48].x(), shape[48].y())); //#48 mouth left corner
+    image_pts.push_back(cv::Point2d(shape[54].x(), shape[54].y())); //#54 mouth right corner
+    image_pts.push_back(cv::Point2d(shape[57].x(), shape[57].y())); //#57 mouth central bottom corner
+    image_pts.push_back(cv::Point2d(shape[8].x(), shape[8].y()));   //#8 chin corner
 
     //calc pose
     cv::solvePnP(object_pts, image_pts, cam_matrix, cv::noArray()/*dist_coeffs*/, rotation_vec, translation_vec, false, cv::SOLVEPNP_EPNP);
@@ -244,43 +278,11 @@
           );
 
     self.headPoseAngle =
-    SCNVector3Make(euler_angle.at<double>(0) * M_PI / 180,
-                   euler_angle.at<double>(1) * M_PI / 180,
-                   euler_angle.at<double>(2) * M_PI / 180);
+    SCNVector3Make(M_PI - (euler_angle.at<double>(0) * M_PI / 180),
+                   M_PI - (euler_angle.at<double>(1) * M_PI / 180),
+                   M_PI - (euler_angle.at<double>(2) * M_PI / 180));
 
 }
 
-dlib::rgb_pixel color_for_feature(unsigned long index) {
-    if (index < 17) { // jawline
-        return dlib::rgb_pixel(0, 255, 255);
-    } else if (index < 22) { // left eyebrow
-        return dlib::rgb_pixel(255, 0, 0);
-    } else if (index < 27) { // right eyebrow
-        return dlib::rgb_pixel(0, 255, 0);
-    } else if (index < 36) { // nose
-        return dlib::rgb_pixel(255, 255, 0);
-    } else if (index < 42) { // left eye
-        return dlib::rgb_pixel(0, 0, 255);
-    } else if (index < 48) { // right eye
-        return dlib::rgb_pixel(0, 0, 0);
-    } else {
-        return dlib::rgb_pixel(255, 255, 255);
-    }
-}
-
-+ (std::vector<dlib::rectangle>)convertCGRectValueArray:(NSArray<NSValue *> *)rects {
-    std::vector<dlib::rectangle> myConvertedRects;
-    for (NSValue *rectValue in rects) {
-        CGRect rect = [rectValue CGRectValue];
-        long left = rect.origin.x;
-        long top = rect.origin.y;
-        long right = left + rect.size.width;
-        long bottom = top + rect.size.height;
-        dlib::rectangle dlibRect(left, top, right, bottom);
-
-        myConvertedRects.push_back(dlibRect);
-    }
-    return myConvertedRects;
-}
 
 @end

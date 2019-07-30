@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		880D9CDC22F0E80A0072C8D5 /* OneEuroFaceFilter.c in Sources */ = {isa = PBXBuildFile; fileRef = 880D9CDB22F0E80A0072C8D5 /* OneEuroFaceFilter.c */; };
 		91E6847B06D19EFFAAD9B9F5 /* Pods_DisplayLiveSamplesTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BEC594EBA68637602F397F1F /* Pods_DisplayLiveSamplesTests.framework */; };
 		93357F76D42DA8A0F594E4AC /* Pods_DisplayLiveSamplesUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 919091C9D83465C2A06DDBCE /* Pods_DisplayLiveSamplesUITests.framework */; };
 		A56695F01CE8B34B00BD7EAF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A56695EF1CE8B34B00BD7EAF /* AppDelegate.swift */; };
@@ -45,6 +46,8 @@
 		424773F8977034C586F02256 /* Pods-DisplayLiveSamples.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DisplayLiveSamples.debug.xcconfig"; path = "Target Support Files/Pods-DisplayLiveSamples/Pods-DisplayLiveSamples.debug.xcconfig"; sourceTree = "<group>"; };
 		674D70991213E12B73DCE634 /* Pods_DisplayLiveSamples.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_DisplayLiveSamples.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		849591D88F7FA94787473C6F /* Pods-DisplayLiveSamples.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DisplayLiveSamples.release.xcconfig"; path = "Target Support Files/Pods-DisplayLiveSamples/Pods-DisplayLiveSamples.release.xcconfig"; sourceTree = "<group>"; };
+		880D9CDA22F0E80A0072C8D5 /* OneEuroFaceFilter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OneEuroFaceFilter.h; sourceTree = "<group>"; };
+		880D9CDB22F0E80A0072C8D5 /* OneEuroFaceFilter.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = OneEuroFaceFilter.c; sourceTree = "<group>"; };
 		919091C9D83465C2A06DDBCE /* Pods_DisplayLiveSamplesUITests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_DisplayLiveSamplesUITests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		9BE6C945B43EE0242C595156 /* Pods-DisplayLiveSamplesTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DisplayLiveSamplesTests.release.xcconfig"; path = "Target Support Files/Pods-DisplayLiveSamplesTests/Pods-DisplayLiveSamplesTests.release.xcconfig"; sourceTree = "<group>"; };
 		A56695EC1CE8B34B00BD7EAF /* DisplayLiveSamples.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DisplayLiveSamples.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -113,7 +116,6 @@
 				E41760B6CAFA0C92BBA1C6F0 /* Pods-DisplayLiveSamplesUITests.debug.xcconfig */,
 				E363C30CB6C5F5A9B3287626 /* Pods-DisplayLiveSamplesUITests.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -165,6 +167,8 @@
 				A56695F81CE8B34B00BD7EAF /* LaunchScreen.storyboard */,
 				A56695FB1CE8B34B00BD7EAF /* Info.plist */,
 				A5A1B2CF1CEA317B00626AC5 /* DisplayLiveSamples-Bridging-Header.h */,
+				880D9CDA22F0E80A0072C8D5 /* OneEuroFaceFilter.h */,
+				880D9CDB22F0E80A0072C8D5 /* OneEuroFaceFilter.c */,
 			);
 			path = DisplayLiveSamples;
 			sourceTree = "<group>";
@@ -399,6 +403,7 @@
 				A5A1B2D21CEA317B00626AC5 /* DlibWrapper.mm in Sources */,
 				A56695F21CE8B34B00BD7EAF /* ViewController.swift in Sources */,
 				A566961E1CE8B4A100BD7EAF /* SessionHandler.swift in Sources */,
+				880D9CDC22F0E80A0072C8D5 /* OneEuroFaceFilter.c in Sources */,
 				A56695F01CE8B34B00BD7EAF /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
