@@ -58,6 +58,7 @@
 
     size_t width = CVPixelBufferGetWidth(imageBuffer)+8; //// TODO I had to add 8 here, y tho
     size_t height = CVPixelBufferGetHeight(imageBuffer);
+    NSLog(@"Image dimensions: %zu / %zu", width, height);
     char *baseBuffer = (char *)CVPixelBufferGetBaseAddress(imageBuffer);
     
     // set_size expects rows, cols format
@@ -103,7 +104,7 @@
         }
         
         // reverse-project the face points to determine pose
-        [self.class getHeadPose:shape];
+        [self updateHeadPose:shape];
     }
 
     // Use this to calibrate Jesse's wtf hack / TODO remove this (See above TODO)
@@ -132,14 +133,29 @@
     CVPixelBufferUnlockBaseAddress(imageBuffer, 0);
 }
 
-+ (void)getHeadPose:(dlib::full_object_detection)shape
+- (void)updateHeadPose:(dlib::full_object_detection &)shape
 {
     // ------------------------------------------
     // TODO: Move this to an initialization step
 
     //Intrisics can be calculated using opencv sample code under opencv/sources/samples/cpp/tutorial_code/calib3d
     //Normally, you can also apprximate fx and fy by image width, cx by half image width, cy by half image height instead
-    double K[9] = { 6.5308391993466671e+002, 0.0, 3.1950000000000000e+002, 0.0, 6.5308391993466671e+002, 2.3950000000000000e+002, 0.0, 0.0, 1.0 };
+//    double K[9] = { 6.5308391993466671e+002, 0.0, 3.1950000000000000e+002, 0.0, 6.5308391993466671e+002, 2.3950000000000000e+002, 0.0, 0.0, 1.0 };
+    /*
+     Camera Matrix:
+     [ fx,  0, cx
+        0, fy, cy
+        0,  0,  1]
+
+     iphone X: FX: 1435.0 FY: 1568.0573 CX: 960.0 CY: 540.0
+
+     Dist Coefficients:
+     [ k1, k2, p1, p2 [, k3 [, k4, k5, k6]]] (4, 5, or 8 elements)
+     */
+    double K[9] = {
+        1435, 0.0, 960,
+        0.0, 1538.0573, 540,
+        0.0, 0.0, 1.0 };
     double D[5] = { 7.0834633684407095e-002, 6.9140193737175351e-002, 0.0, 0.0, -1.3073460323689292e+000 };
     //fill in cam intrinsics and distortion coefficients
     cv::Mat cam_matrix = cv::Mat(3, 3, CV_64FC1, K);
@@ -172,21 +188,6 @@
     cv::Mat pose_mat = cv::Mat(3, 4, CV_64FC1);     //3 x 4 R | T
     cv::Mat euler_angle = cv::Mat(3, 1, CV_64FC1);
 
-    //reproject 3D points world coordinate axis to verify result pose
-    std::vector<cv::Point3d> reprojectsrc;
-    reprojectsrc.push_back(cv::Point3d(10.0, 10.0, 10.0));
-    reprojectsrc.push_back(cv::Point3d(10.0, 10.0, -10.0));
-    reprojectsrc.push_back(cv::Point3d(10.0, -10.0, -10.0));
-    reprojectsrc.push_back(cv::Point3d(10.0, -10.0, 10.0));
-    reprojectsrc.push_back(cv::Point3d(-10.0, 10.0, 10.0));
-    reprojectsrc.push_back(cv::Point3d(-10.0, 10.0, -10.0));
-    reprojectsrc.push_back(cv::Point3d(-10.0, -10.0, -10.0));
-    reprojectsrc.push_back(cv::Point3d(-10.0, -10.0, 10.0));
-
-    //reprojected 2D points
-    std::vector<cv::Point2d> reprojectdst;
-    reprojectdst.resize(8);
-
     //temp buf for decomposeProjectionMatrix()
     cv::Mat out_intrinsics = cv::Mat(3, 3, CV_64FC1);
     cv::Mat out_rotation = cv::Mat(3, 3, CV_64FC1);
@@ -210,17 +211,30 @@
     image_pts.push_back(cv::Point2d(shape.part(57).x(), shape.part(57).y())); //#57 mouth central bottom corner
     image_pts.push_back(cv::Point2d(shape.part(8).x(), shape.part(8).y()));   //#8 chin corner
 
-    //calc pose
-    cv::solvePnP(object_pts, image_pts, cam_matrix, dist_coeffs, rotation_vec, translation_vec);
+    double maxX = 0;
+    double minX = 1000000;
+    double maxY = 0;
+    double minY = 1000000;
+    for (unsigned long i = 0; i < image_pts.size(); i++) {
+        maxX = MAX(image_pts[i].x, maxX);
+        minX = MIN(image_pts[i].x, minX);
+        maxY = MAX(image_pts[i].y, maxY);
+        minY = MIN(image_pts[i].y, minY);
+    }
+    NSLog(@"Rect: (%0.2f, %0.2f, %0.2f, %0.2f)", minX, minY, maxX, maxY);
 
-    //reproject
-    cv::projectPoints(reprojectsrc, rotation_vec, translation_vec, cam_matrix, dist_coeffs, reprojectdst);
+    //calc pose
+    cv::solvePnP(object_pts, image_pts, cam_matrix, cv::noArray()/*dist_coeffs*/, rotation_vec, translation_vec, false, cv::SOLVEPNP_EPNP);
+    NSLog(@"Rotation Vector: %0.2f, %0.2f, %0.2f",
+          rotation_vec.at<double>(0),
+          rotation_vec.at<double>(1),
+          rotation_vec.at<double>(2));
 
     //calc euler angle
     cv::Rodrigues(rotation_vec, rotation_mat);
     cv::hconcat(rotation_mat, translation_vec, pose_mat);
     cv::decomposeProjectionMatrix(pose_mat, out_intrinsics, out_rotation, out_translation, cv::noArray(), cv::noArray(), cv::noArray(), euler_angle);
-    NSLog(@"%0.2f, %0.2f, %0.2f, %0.2f, %0.2f, %0.2f",
+    NSLog(@"R: %0.2f, %0.2f, %0.2f, T: %0.2f, %0.2f, %0.2f",
           euler_angle.at<double>(0),
           euler_angle.at<double>(1),
           euler_angle.at<double>(2),
@@ -228,6 +242,12 @@
           out_translation.at<double>(1),
           out_translation.at<double>(2)
           );
+
+    self.headPoseAngle =
+    SCNVector3Make(euler_angle.at<double>(0) * M_PI / 180,
+                   euler_angle.at<double>(1) * M_PI / 180,
+                   euler_angle.at<double>(2) * M_PI / 180);
+
 }
 
 dlib::rgb_pixel color_for_feature(unsigned long index) {

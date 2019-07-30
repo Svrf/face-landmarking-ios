@@ -8,11 +8,14 @@
 
 #import <Foundation/Foundation.h>
 #import <CoreMedia/CoreMedia.h>
+#import <SceneKit/SceneKit.h>
 
 @interface DlibWrapper : NSObject
 
 - (instancetype)init;
 - (void)doWorkOnSampleBuffer:(CMSampleBufferRef)sampleBuffer inRects:(NSArray<NSValue *> *)rects;
 - (void)prepare;
+
+@property (assign) SCNVector3 headPoseAngle;
 
 @end

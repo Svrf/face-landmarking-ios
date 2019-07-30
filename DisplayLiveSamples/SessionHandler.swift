@@ -7,8 +7,11 @@
 //
 
 import AVFoundation
+import SceneKit
 
 class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate {
+    var refNode: SCNNode?
+
     var session = AVCaptureSession()
     let layer = AVSampleBufferDisplayLayer()
     let sampleQueue = DispatchQueue(label: "com.zweigraf.DisplayLiveSamples.sampleQueue", attributes: [])
@@ -35,7 +38,24 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
         
         let metaOutput = AVCaptureMetadataOutput()
         metaOutput.setMetadataObjectsDelegate(self, queue: faceQueue)
-    
+
+        // Calc fx/fy/cx/cy
+        let format = device.activeFormat;
+
+        let fDesc = format.formatDescription;
+        let dim = CMVideoFormatDescriptionGetPresentationDimensions(fDesc, true, true);
+
+        let cx = Float(dim.width) / 2.0;
+        let cy = Float(dim.height) / 2.0;
+
+        let HFOV = format.videoFieldOfView;
+        let VFOV = ((HFOV)/cx)*cy;
+
+        let fx = abs(Float(dim.width) / (2 * tan(HFOV / 180 * Float.pi / 2)));
+        let fy = abs(Float(dim.height) / (2 * tan(VFOV / 180 * Float.pi / 2)));
+        print("FX: \(fx) FY: \(fy) CX: \(cx) CY: \(cy)")
+        // TODO: Pass these through Session / dlib helper
+
         session.beginConfiguration()
         
         if session.canAddInput(input) {
@@ -80,6 +100,11 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
             }
             
             wrapper?.doWork(on: sampleBuffer, inRects: boundsArray)
+            if let angle = wrapper?.headPoseAngle {
+                DispatchQueue.main.async { 
+                    self.refNode?.eulerAngles = angle
+                }
+            }
         }
 
         layer.enqueue(sampleBuffer)
