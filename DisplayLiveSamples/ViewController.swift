@@ -9,17 +9,19 @@
 import UIKit
 import AVFoundation
 import SceneKit
+import SvrfGLTFSceneKit
 
 class ViewController: UIViewController {
     let sessionHandler = SessionHandler()
     
     @IBOutlet weak var preview: UIView!
     @IBOutlet weak var sceneView: SCNView!
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.view.backgroundColor = .blue
-        sceneView.allowsCameraControl = true
+
+        sessionHandler.scnView = sceneView
+        sessionHandler.openSession()
 
         let scene = SCNScene()
         sceneView.scene = scene
@@ -27,7 +29,11 @@ class ViewController: UIViewController {
         let camera = SCNCamera()
         let cameraNode = SCNNode()
         cameraNode.camera = camera
-        cameraNode.position = SCNVector3(x: 0.0, y: 0.0, z: 3.0)
+        if let fov = sessionHandler.hfov {
+            camera.fieldOfView = CGFloat(fov/7)
+            camera.projectionDirection = .horizontal
+        }
+        cameraNode.position = SCNVector3(x: 0.0, y: 0.0, z: 1.3)
 
         let light = SCNLight()
         light.type = .omni
@@ -46,20 +52,66 @@ class ViewController: UIViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        
-        sessionHandler.openSession()
 
         let layer = sessionHandler.layer
         layer.frame = preview.bounds
         preview.layer.insertSublayer(layer, below: sceneView.layer)
 
-        let cubeGeometry = SCNBox(width: 1.0, height: 1.0, length: 1.0, chamferRadius: 0.0)
-        let cubeNode = SCNNode(geometry: cubeGeometry)
+        let glasses = try! loadFaceNode("eyewear1.glb")
+        glasses.position = SCNVector3(0, 0, 0)
 
-        sessionHandler.refNode = cubeNode
-        sceneView.scene?.rootNode.addChildNode(cubeNode)
+//        let cubeGeometry = SCNBox(width: 1.0, height: 1.0, length: 1.0, chamferRadius: 0.0)
+//        let cubeNode = SCNNode(geometry: cubeGeometry)
+
+        sessionHandler.refNode = glasses
+        sceneView.scene?.rootNode.addChildNode(sessionHandler.refNode!)
 
         view.layoutIfNeeded()
+    }
+
+    // MARK: - Model management
+
+    private func loadFaceNode(_ glbFile: String) throws -> SCNNode {
+        let modelSource = try GLTFSceneSource(path: glbFile)
+
+        let faceFilterNode = SCNNode()
+        let sceneNode = try modelSource.scene().rootNode
+
+        if let occluderNode = sceneNode.childNode(withName: "Occluder",
+                                                  recursively: true) {
+            faceFilterNode.addChildNode(occluderNode)
+            setOccluderNode(node: occluderNode)
+        }
+
+        if let headNode = sceneNode.childNode(withName: "Head", recursively: true) {
+            faceFilterNode.addChildNode(headNode)
+        }
+
+        faceFilterNode.morpher?.calculationMode = SCNMorpherCalculationMode.normalized
+
+        return faceFilterNode
+    }
+
+    @IBAction func slider1Changed(_ sender: UISlider) {
+        sessionHandler.updateSlider1(sender.value)
+    }
+
+    @IBAction func slider2Changed(_ sender: UISlider) {
+        sessionHandler.updateSlider2(sender.value)
+    }
+
+    /**
+     Sets a node to have all of its children set as an occluder.
+     - Parameters:
+     - node: A *SCNNode* likely named *Occluder*.
+     */
+    private func setOccluderNode(node: SCNNode) {
+
+        // Any child of this node should be occluded
+        node.enumerateHierarchy { (childNode, _) in
+            childNode.geometry?.firstMaterial?.colorBufferWriteMask = []
+            childNode.renderingOrder = -1
+        }
     }
 
 }

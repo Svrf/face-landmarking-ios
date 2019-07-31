@@ -7,6 +7,7 @@ target 'DisplayLiveSamples' do
 
   # Pods for DisplayLiveSamples
   pod 'OpenCV'
+  pod 'SvrfGLTFSceneKit'
 
   target 'DisplayLiveSamplesTests' do
     inherit! :search_paths

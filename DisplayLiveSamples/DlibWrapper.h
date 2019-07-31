@@ -17,5 +17,14 @@
 - (void)prepare;
 
 @property (assign) SCNVector3 headPoseAngle;
+// Head position is:
+// x + y: pixel position on camera input image
+// z: a number between 0 (front plane) and 1 (horizon)
+@property (assign) SCNVector3 headPosition;
+
+@property (assign) CGSize cameraBufferSize;
+
+@property (assign) double slider1Value;
+@property (assign) double slider2Value;
 
 @end

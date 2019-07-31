@@ -22,7 +22,7 @@ extern "C" {
  return r / (r + 1)
  */
 
-static const unsigned long NUM_POINTS = 68*2;
+static const unsigned long NUM_POINTS = (68*2) + 3;
 
 double min_cutoff = 1.0;
 double beta = 0.0;

@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		880D9CDC22F0E80A0072C8D5 /* OneEuroFaceFilter.c in Sources */ = {isa = PBXBuildFile; fileRef = 880D9CDB22F0E80A0072C8D5 /* OneEuroFaceFilter.c */; };
+		880D9CE122F1EFB20072C8D5 /* eyewear1.glb in Resources */ = {isa = PBXBuildFile; fileRef = 880D9CE022F1EFB20072C8D5 /* eyewear1.glb */; };
+		880D9CE222F1EFFC0072C8D5 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 880D9CDF22F1EF880072C8D5 /* Accelerate.framework */; };
 		91E6847B06D19EFFAAD9B9F5 /* Pods_DisplayLiveSamplesTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BEC594EBA68637602F397F1F /* Pods_DisplayLiveSamplesTests.framework */; };
 		93357F76D42DA8A0F594E4AC /* Pods_DisplayLiveSamplesUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 919091C9D83465C2A06DDBCE /* Pods_DisplayLiveSamplesUITests.framework */; };
 		A56695F01CE8B34B00BD7EAF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A56695EF1CE8B34B00BD7EAF /* AppDelegate.swift */; };
@@ -20,7 +22,6 @@
 		A566961E1CE8B4A100BD7EAF /* SessionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A566961D1CE8B4A100BD7EAF /* SessionHandler.swift */; };
 		A5A1B2D21CEA317B00626AC5 /* DlibWrapper.mm in Sources */ = {isa = PBXBuildFile; fileRef = A5A1B2D11CEA317B00626AC5 /* DlibWrapper.mm */; };
 		A5A1B2D41CEA35B300626AC5 /* libdlib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A5A1B2D31CEA35B300626AC5 /* libdlib.a */; };
-		A5A1B2D61CEA41E200626AC5 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A5A1B2D51CEA41E200626AC5 /* Accelerate.framework */; };
 		A5A1B2D81CEA431600626AC5 /* shape_predictor_68_face_landmarks.dat in Resources */ = {isa = PBXBuildFile; fileRef = A5A1B2D71CEA431600626AC5 /* shape_predictor_68_face_landmarks.dat */; };
 		D190FF14B18D8EDDA507A633 /* Pods_DisplayLiveSamples.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 674D70991213E12B73DCE634 /* Pods_DisplayLiveSamples.framework */; };
 /* End PBXBuildFile section */
@@ -48,6 +49,8 @@
 		849591D88F7FA94787473C6F /* Pods-DisplayLiveSamples.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DisplayLiveSamples.release.xcconfig"; path = "Target Support Files/Pods-DisplayLiveSamples/Pods-DisplayLiveSamples.release.xcconfig"; sourceTree = "<group>"; };
 		880D9CDA22F0E80A0072C8D5 /* OneEuroFaceFilter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OneEuroFaceFilter.h; sourceTree = "<group>"; };
 		880D9CDB22F0E80A0072C8D5 /* OneEuroFaceFilter.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = OneEuroFaceFilter.c; sourceTree = "<group>"; };
+		880D9CDF22F1EF880072C8D5 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
+		880D9CE022F1EFB20072C8D5 /* eyewear1.glb */ = {isa = PBXFileReference; lastKnownFileType = file; path = eyewear1.glb; sourceTree = "<group>"; };
 		919091C9D83465C2A06DDBCE /* Pods_DisplayLiveSamplesUITests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_DisplayLiveSamplesUITests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		9BE6C945B43EE0242C595156 /* Pods-DisplayLiveSamplesTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DisplayLiveSamplesTests.release.xcconfig"; path = "Target Support Files/Pods-DisplayLiveSamplesTests/Pods-DisplayLiveSamplesTests.release.xcconfig"; sourceTree = "<group>"; };
 		A56695EC1CE8B34B00BD7EAF /* DisplayLiveSamples.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DisplayLiveSamples.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -68,7 +71,6 @@
 		A5A1B2D01CEA317B00626AC5 /* DlibWrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DlibWrapper.h; sourceTree = "<group>"; };
 		A5A1B2D11CEA317B00626AC5 /* DlibWrapper.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DlibWrapper.mm; sourceTree = "<group>"; };
 		A5A1B2D31CEA35B300626AC5 /* libdlib.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libdlib.a; path = DisplayLiveSamples/lib/libdlib.a; sourceTree = "<group>"; };
-		A5A1B2D51CEA41E200626AC5 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		A5A1B2D71CEA431600626AC5 /* shape_predictor_68_face_landmarks.dat */ = {isa = PBXFileReference; lastKnownFileType = file; name = shape_predictor_68_face_landmarks.dat; path = DisplayLiveSamples/lib/shape_predictor_68_face_landmarks.dat; sourceTree = "<group>"; };
 		BEC594EBA68637602F397F1F /* Pods_DisplayLiveSamplesTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_DisplayLiveSamplesTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DF5135C6ABF606DE52C96BB3 /* Pods-DisplayLiveSamplesTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DisplayLiveSamplesTests.debug.xcconfig"; path = "Target Support Files/Pods-DisplayLiveSamplesTests/Pods-DisplayLiveSamplesTests.debug.xcconfig"; sourceTree = "<group>"; };
@@ -81,7 +83,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A5A1B2D61CEA41E200626AC5 /* Accelerate.framework in Frameworks */,
+				880D9CE222F1EFFC0072C8D5 /* Accelerate.framework in Frameworks */,
 				A5A1B2D41CEA35B300626AC5 /* libdlib.a in Frameworks */,
 				D190FF14B18D8EDDA507A633 /* Pods_DisplayLiveSamples.framework in Frameworks */,
 			);
@@ -122,6 +124,7 @@
 		9D37B1A6F8CEB64DA261BF20 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				880D9CDF22F1EF880072C8D5 /* Accelerate.framework */,
 				674D70991213E12B73DCE634 /* Pods_DisplayLiveSamples.framework */,
 				BEC594EBA68637602F397F1F /* Pods_DisplayLiveSamplesTests.framework */,
 				919091C9D83465C2A06DDBCE /* Pods_DisplayLiveSamplesUITests.framework */,
@@ -133,7 +136,7 @@
 			isa = PBXGroup;
 			children = (
 				A5A1B2D71CEA431600626AC5 /* shape_predictor_68_face_landmarks.dat */,
-				A5A1B2D51CEA41E200626AC5 /* Accelerate.framework */,
+				880D9CE022F1EFB20072C8D5 /* eyewear1.glb */,
 				A5A1B2D31CEA35B300626AC5 /* libdlib.a */,
 				A56695EE1CE8B34B00BD7EAF /* DisplayLiveSamples */,
 				A56696031CE8B34B00BD7EAF /* DisplayLiveSamplesTests */,
@@ -202,6 +205,7 @@
 				A56695E81CE8B34B00BD7EAF /* Sources */,
 				A56695E91CE8B34B00BD7EAF /* Frameworks */,
 				A56695EA1CE8B34B00BD7EAF /* Resources */,
+				39C8284EC3DF754A5F170C0A /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -305,6 +309,7 @@
 			files = (
 				A56695FA1CE8B34B00BD7EAF /* LaunchScreen.storyboard in Resources */,
 				A56695F71CE8B34B00BD7EAF /* Assets.xcassets in Resources */,
+				880D9CE122F1EFB20072C8D5 /* eyewear1.glb in Resources */,
 				A56695F51CE8B34B00BD7EAF /* Main.storyboard in Resources */,
 				A5A1B2D81CEA431600626AC5 /* shape_predictor_68_face_landmarks.dat in Resources */,
 			);
@@ -327,6 +332,24 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		39C8284EC3DF754A5F170C0A /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-DisplayLiveSamples/Pods-DisplayLiveSamples-frameworks.sh",
+				"${BUILT_PRODUCTS_DIR}/SvrfGLTFSceneKit/SvrfGLTFSceneKit.framework",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/SvrfGLTFSceneKit.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-DisplayLiveSamples/Pods-DisplayLiveSamples-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 		6FDE0019579A4813C8CEA0CC /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -504,7 +527,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -552,7 +575,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";

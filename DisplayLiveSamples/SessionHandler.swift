@@ -11,8 +11,11 @@ import SceneKit
 
 class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate {
     var refNode: SCNNode?
+    var scnView: SCNView?
 
     var session = AVCaptureSession()
+    var hfov: Float?
+    var vfov: Float?
     let layer = AVSampleBufferDisplayLayer()
     let sampleQueue = DispatchQueue(label: "com.zweigraf.DisplayLiveSamples.sampleQueue", attributes: [])
     let faceQueue = DispatchQueue(label: "com.zweigraf.DisplayLiveSamples.faceQueue", attributes: [])
@@ -43,16 +46,18 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
         let format = device.activeFormat;
 
         let fDesc = format.formatDescription;
-        let dim = CMVideoFormatDescriptionGetPresentationDimensions(fDesc, true, true);
+        let dim = CMVideoFormatDescriptionGetPresentationDimensions(fDesc, true, true)
 
-        let cx = Float(dim.width) / 2.0;
-        let cy = Float(dim.height) / 2.0;
+        let cx = Float(dim.width) / 2.0
+        let cy = Float(dim.height) / 2.0
 
-        let HFOV = format.videoFieldOfView;
-        let VFOV = ((HFOV)/cx)*cy;
+        let HFOV = format.videoFieldOfView
+        self.hfov = HFOV
+        let VFOV = ((HFOV)/cx)*cy
+        self.vfov = VFOV
 
-        let fx = abs(Float(dim.width) / (2 * tan(HFOV / 180 * Float.pi / 2)));
-        let fy = abs(Float(dim.height) / (2 * tan(VFOV / 180 * Float.pi / 2)));
+        let fx = abs(Float(dim.width) / (2 * tan(HFOV / 180 * Float.pi / 2)))
+        let fy = abs(Float(dim.height) / (2 * tan(VFOV / 180 * Float.pi / 2)))
         print("FX: \(fx) FY: \(fy) CX: \(cx) CY: \(cy)")
         // TODO: Pass these through Session / dlib helper
 
@@ -85,7 +90,15 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
         
         session.startRunning()
     }
-    
+
+    func updateSlider1(_ newValue: Float) {
+        wrapper?.slider1Value = Double(newValue)
+    }
+
+    func updateSlider2(_ newValue: Float) {
+        wrapper?.slider2Value = Double(newValue)
+    }
+
     // MARK: AVCaptureVideoDataOutputSampleBufferDelegate
     func captureOutput(_ output: AVCaptureOutput,
                        didOutput sampleBuffer: CMSampleBuffer,
@@ -100,9 +113,14 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
             }
             
             wrapper?.doWork(on: sampleBuffer, inRects: boundsArray)
-            if let angle = wrapper?.headPoseAngle {
+            if let angle = wrapper?.headPoseAngle, let position = wrapper?.headPosition {
                 DispatchQueue.main.async { 
                     self.refNode?.eulerAngles = angle
+                    let scaledPosition = SCNVector3(x: position.x * Float(self.scnView!.frame.size.width/self.wrapper!.cameraBufferSize.width),
+                                                    y: position.y * Float(self.scnView!.frame.size.height/self.wrapper!.cameraBufferSize.height),
+                                                    z: position.z)
+                    self.refNode?.position = self.scnView!.unprojectPoint(scaledPosition)
+                    print("Position: \(position) - unprojected: \(self.refNode!.position)")
                 }
             }
         }
