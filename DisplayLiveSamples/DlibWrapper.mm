@@ -11,11 +11,16 @@
 
 #include <dlib/image_processing.h>
 #include <dlib/image_io.h>
+//#include <dlib/image_processing/frontal_face_detector.h>
 #include <dlib/opencv.h>
+#include <math.h>
 #include <opencv2/calib3d.hpp>
 
 #include "OneEuroFaceFilter.h"
 #include "DisplayLiveSamples-Bridging-Header.h"
+
+// How much larger to expand the discovered face rectangle
+const static unsigned int FACE_RECT_OVERFLOW=10;
 
 @interface DlibWrapper ()
 
@@ -26,6 +31,7 @@
 @end
 @implementation DlibWrapper {
     dlib::shape_predictor sp;
+//    dlib::frontal_face_detector detector;
 
     // 3d representation of face points for reverse-projection
     std::vector<cv::Point3d> object_pts;
@@ -115,7 +121,9 @@
     
     // convert the face bounds list to dlib format
     std::vector<dlib::rectangle> convertedRectangles = [DlibWrapper convertCGRectValueArray:rects];
-    
+
+//    std::vector<dlib::rectangle> faces = detector(img);
+
     // for the first detected face
     if (convertedRectangles.size() > 0) {
         dlib::rectangle oneFaceRect = convertedRectangles[0];
@@ -136,6 +144,8 @@
 
         // reverse-project the face points to determine pose
         [self updateHeadPose:smoothed_points width:width height:height];
+    } else {
+        self.headPosition = SCNVector3Zero;
     }
 
     // Use this to calibrate Jesse's wtf hack / TODO remove this (See above TODO)
@@ -163,7 +173,7 @@
     }
     CVPixelBufferUnlockBaseAddress(imageBuffer, 0);
 
-    frame_number += 0.08;
+    frame_number += 0.09;
 }
 
 dlib::rgb_pixel color_for_feature(unsigned long index) {
@@ -188,10 +198,10 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
     std::vector<dlib::rectangle> myConvertedRects;
     for (NSValue *rectValue in rects) {
         CGRect rect = [rectValue CGRectValue];
-        long left = rect.origin.x;
-        long top = rect.origin.y;
-        long right = left + rect.size.width;
-        long bottom = top + rect.size.height;
+        long left = rect.origin.x - FACE_RECT_OVERFLOW;
+        long top = rect.origin.y - FACE_RECT_OVERFLOW;
+        long right = left + rect.size.width + FACE_RECT_OVERFLOW*2;
+        long bottom = top + rect.size.height + FACE_RECT_OVERFLOW*2;
         dlib::rectangle dlibRect(left, top, right, bottom);
 
         myConvertedRects.push_back(dlibRect);
@@ -220,9 +230,14 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
      Dist Coefficients:
      [ k1, k2, p1, p2 [, k3 [, k4, k5, k6]]] (4, 5, or 8 elements)
      */
+//    double K[9] = {
+//        1435, 0.0, 960,
+//        0.0, 1538.0573, 540,
+//        0.0, 0.0, 1.0 };
+
     double K[9] = {
-        1435, 0.0, 960,
-        0.0, 1538.0573, 540,
+        self.cameraFx, 0.0, self.cameraCx,
+        0.0, self.cameraFy, self.cameraCy,
         0.0, 0.0, 1.0 };
     double D[5] = { 7.0834633684407095e-002, 6.9140193737175351e-002, 0.0, 0.0, -1.3073460323689292e+000 };
     //fill in cam intrinsics and distortion coefficients
@@ -264,10 +279,6 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
 
     //calc pose
     cv::solvePnP(object_pts, image_pts, cam_matrix, cv::noArray(), rotation_vec, translation_vec, false, cv::SOLVEPNP_EPNP);
-    NSLog(@"Rotation Vector: %0.2f, %0.2f, %0.2f",
-          rotation_vec.at<double>(0),
-          rotation_vec.at<double>(1),
-          rotation_vec.at<double>(2));
 
 //    std::vector<cv::Point3d> reprojectsrc;
 //    std::vector<cv::Point2d> reprojectdst;
@@ -314,16 +325,20 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
           );
 */
 
-//    double smooth_euler_0 = filter(euler_angle.at<double>(0), frame_number, (2*68)) * M_PI/180;
-//    double smooth_euler_1 = filter(euler_angle.at<double>(1), frame_number, (2*68)+1) * M_PI/180;
-//    double smooth_euler_2 = filter(euler_angle.at<double>(2), frame_number, (2*68)+2) * M_PI/180;
+    // Correct for front camera mirroring
+
+//    double smooth_euler_0 = filter(fmodf(euler_angle.at<double>(0), 360), frame_number, (2*68)) * M_PI/180;
+//    double smooth_euler_1 = filter(fmodf(euler_angle.at<double>(1), 360), frame_number, (2*68)+1) * M_PI/180;
+//    double smooth_euler_2 = filter(fmodf(euler_angle.at<double>(2), 360), frame_number, (2*68)+2) * M_PI/180;
 //    self.headPoseAngle = SCNVector3Make(M_PI + smooth_euler_0, M_PI + smooth_euler_1, -smooth_euler_2);
 
-    // Correct for front camera mirroring
     self.headPoseAngle =
     SCNVector3Make(M_PI + (euler_angle.at<double>(0) * M_PI / 180),
                    M_PI + (euler_angle.at<double>(1) * M_PI / 180),
-                   -(euler_angle.at<double>(2) * M_PI / 180));
+                   -euler_angle.at<double>(2) * M_PI / 180);
+//    SCNVector3Make(fmodf(M_PI + (euler_angle.at<double>(0) * M_PI / 180), 2*M_PI),
+//                   fmodf(M_PI + (euler_angle.at<double>(1) * M_PI / 180), 2*M_PI),
+//                   -fmodf(euler_angle.at<double>(2) * M_PI / 180, 2*M_PI));
     self.headPosition = position;
 //    SCNVector3Make(out_translation.at<double>(0),
 //                   out_translation.at<double>(1),
@@ -353,8 +368,11 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
     x /= (68-17);
     y /= (68-17);
 
-    double divisor = 1.44;//self.slider1Value * 3;
-    double downscale_factor = 689;//self.slider2Value * 1000;
+//    x = shape[28].x();
+//    y = shape[28].y();
+
+    double divisor = 1.5;// self.slider1Value * 3; // 1.44
+    double downscale_factor = 722;// self.slider2Value * 1000; // 689
     double z = ((double)width/divisor) - (max_x - min_x);
 
     NSLog(@"divisor: %0.2f / downscale factor: %0.1f", divisor, downscale_factor);

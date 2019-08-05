@@ -17,11 +17,17 @@ class ViewController: UIViewController {
     @IBOutlet weak var preview: UIView!
     @IBOutlet weak var sceneView: SCNView!
 
+    @IBOutlet weak var yawWarning: UILabel!
+    @IBOutlet weak var rollWarning: UILabel!
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
         sessionHandler.scnView = sceneView
         sessionHandler.openSession()
+
+        sessionHandler.yawWarning = yawWarning
+        sessionHandler.rollWarning = rollWarning
 
         let scene = SCNScene()
         sceneView.scene = scene

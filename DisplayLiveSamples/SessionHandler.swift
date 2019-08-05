@@ -20,6 +20,9 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
     let sampleQueue = DispatchQueue(label: "com.zweigraf.DisplayLiveSamples.sampleQueue", attributes: [])
     let faceQueue = DispatchQueue(label: "com.zweigraf.DisplayLiveSamples.faceQueue", attributes: [])
     let wrapper = DlibWrapper()
+
+    var yawWarning: UILabel?
+    var rollWarning: UILabel?
     
     var currentMetadata: [AnyObject]
     
@@ -59,6 +62,10 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
         let fx = abs(Float(dim.width) / (2 * tan(HFOV / 180 * Float.pi / 2)))
         let fy = abs(Float(dim.height) / (2 * tan(VFOV / 180 * Float.pi / 2)))
         print("FX: \(fx) FY: \(fy) CX: \(cx) CY: \(cy)")
+        wrapper?.cameraFx = Double(fx)
+        wrapper?.cameraFy = Double(fy)
+        wrapper?.cameraCx = Double(cx)
+        wrapper?.cameraCy = Double(cy)
         // TODO: Pass these through Session / dlib helper
 
         session.beginConfiguration()
@@ -104,17 +111,45 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
                        didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
 
+        yawWarning?.isHidden = true
+        rollWarning?.isHidden = true
+
         if !currentMetadata.isEmpty {
+            var yawOverride:CGFloat?
+            var rollOverride:CGFloat?
             let boundsArray = currentMetadata
                 .compactMap { $0 as? AVMetadataFaceObject }
                 .map { (faceObject) -> NSValue in
                     let convertedObject = output.transformedMetadataObject(for: faceObject, connection: connection)
+                    if (faceObject.hasYawAngle) {
+                        yawOverride = faceObject.yawAngle
+                    }
+                    if (faceObject.hasRollAngle) {
+                        rollOverride = faceObject.rollAngle
+                    }
                     return NSValue(cgRect: convertedObject!.bounds)
             }
             
             wrapper?.doWork(on: sampleBuffer, inRects: boundsArray)
-            if let angle = wrapper?.headPoseAngle, let position = wrapper?.headPosition {
+            if let angle = wrapper?.headPoseAngle, let position = wrapper?.headPosition,
+                (position.x != 0 || position.y != 0 || position.z != 0)  {
                 DispatchQueue.main.async { 
+                    self.refNode?.isHidden = false
+                    // TODO: Use these as references to de-noise the data
+                    if let roll = rollOverride {
+                        let adjustedRoll = (Float(roll)*Float.pi/180) - Float.pi/2
+                        if fabs(adjustedRoll - angle.z) > Float.pi/2 {
+                            self.rollWarning?.isHidden = false
+                            self.rollWarning?.text = String(format:"Roll off: %0.2f", fabs(adjustedRoll - angle.z))
+                        }
+                    }
+                    if let yaw = yawOverride {
+                        let adjustedYaw = -(Float(yaw)*Float.pi/180) + Float.pi
+                        if fabs(adjustedYaw - angle.y) > Float.pi/2 {
+                            self.yawWarning?.isHidden = false
+                            self.yawWarning?.text = String(format:"Yaw off: %0.2f", fabs(adjustedYaw - angle.y))
+                        }
+                    }
                     self.refNode?.eulerAngles = angle
                     let scaledPosition = SCNVector3(x: position.x * Float(self.scnView!.frame.size.width/self.wrapper!.cameraBufferSize.width),
                                                     y: position.y * Float(self.scnView!.frame.size.height/self.wrapper!.cameraBufferSize.height),
@@ -122,7 +157,13 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
                     self.refNode?.position = self.scnView!.unprojectPoint(scaledPosition)
                     print("Position: \(position) - unprojected: \(self.refNode!.position)")
                 }
+            } else {
+                DispatchQueue.main.async {
+                    self.refNode?.isHidden = true
+                }
             }
+        } else {
+            self.refNode?.isHidden = true
         }
 
         layer.enqueue(sampleBuffer)
