@@ -11,7 +11,6 @@
 
 #include <dlib/image_processing.h>
 #include <dlib/image_io.h>
-//#include <dlib/image_processing/frontal_face_detector.h>
 #include <dlib/opencv.h>
 #include <math.h>
 #include <opencv2/calib3d.hpp>
@@ -21,6 +20,10 @@
 
 // How much larger to expand the discovered face rectangle
 const static unsigned int FACE_RECT_OVERFLOW=10;
+const static bool SMOOTH_POINTS = true; /* Filter face detection points */
+const static bool SMOOTH_PROJECTION = false; /* Filter projection points */
+const static double FRAME_ADVANCE = 0.09; /* Smaller = more responsive, more noise */
+const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rect around face */
 
 @interface DlibWrapper ()
 
@@ -31,7 +34,6 @@ const static unsigned int FACE_RECT_OVERFLOW=10;
 @end
 @implementation DlibWrapper {
     dlib::shape_predictor sp;
-//    dlib::frontal_face_detector detector;
 
     // 3d representation of face points for reverse-projection
     std::vector<cv::Point3d> object_pts;
@@ -94,6 +96,7 @@ const static unsigned int FACE_RECT_OVERFLOW=10;
     _cameraBufferSize = CGSizeMake(width, height);
     
     // set_size expects rows, cols format
+    NSLog(@"Image dimensions: %d, %d", width, height);
     img.set_size(height, width);
     
     // copy samplebuffer image data into dlib image format
@@ -135,11 +138,17 @@ const static unsigned int FACE_RECT_OVERFLOW=10;
         // and draw them into the image (samplebuffer)
         for (unsigned int k = 0; k < shape.num_parts(); k++) {
             dlib::point p = shape.part(k);
-            double smooth_x = filter((double)p.x(), (double)frame_number, k*2);
-            double smooth_y = filter((double)p.y(), (double)frame_number, k*2+1);
+            double smooth_x = SMOOTH_POINTS ? filter((double)p.x(), (double)frame_number, k*2) : (double)p.x();
+            double smooth_y = SMOOTH_POINTS ? filter((double)p.y(), (double)frame_number, k*2+1) : (double)p.y();
             dlib::point smooth_p((unsigned long)smooth_x, (unsigned long)smooth_y);
             smoothed_points.push_back(smooth_p);
-            draw_solid_circle(img, smooth_p, 3, color_for_feature(k));
+            if (DRAW_FACE_DETECTION_POINTS) {
+                draw_solid_circle(img, smooth_p, 3, color_for_feature(k));
+            }
+        }
+
+        if (DRAW_FACE_DETECTION_POINTS) {
+            draw_rectangle(img, oneFaceRect, dlib::rgb_pixel(0, 128, 0));
         }
 
         // reverse-project the face points to determine pose
@@ -173,7 +182,7 @@ const static unsigned int FACE_RECT_OVERFLOW=10;
     }
     CVPixelBufferUnlockBaseAddress(imageBuffer, 0);
 
-    frame_number += 0.09;
+    frame_number += FRAME_ADVANCE;
 }
 
 dlib::rgb_pixel color_for_feature(unsigned long index) {
@@ -230,10 +239,6 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
      Dist Coefficients:
      [ k1, k2, p1, p2 [, k3 [, k4, k5, k6]]] (4, 5, or 8 elements)
      */
-//    double K[9] = {
-//        1435, 0.0, 960,
-//        0.0, 1538.0573, 540,
-//        0.0, 0.0, 1.0 };
 
     double K[9] = {
         self.cameraFx, 0.0, self.cameraCx,
@@ -294,23 +299,8 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
     // Combine rotation vector and translation vector into pose matrix
     cv::hconcat(rotation_mat, translation_vec, pose_mat);
 
-    // Get the hacked up position vector
-    SCNVector3 position = [self estimatePositionFromShape:shape width:width height:height];
-
     // Extract translation and euler angle from pose matrix
     cv::decomposeProjectionMatrix(pose_mat, out_intrinsics, out_rotation, out_translation, cv::noArray(), cv::noArray(), cv::noArray(), euler_angle);
-    NSLog(@"R: %0.2f, %0.2f, %0.2f, T: %0.2f, %0.2f, %0.2f, T2: %0.2f, %0.2f, %0.2f, T3: %0.2f, %0.2f, %0.2f",
-          euler_angle.at<double>(0),
-          euler_angle.at<double>(1),
-          euler_angle.at<double>(2),
-          out_translation.at<double>(0),
-          out_translation.at<double>(1),
-          out_translation.at<double>(2),
-          translation_vec.at<double>(0),
-          translation_vec.at<double>(1),
-          translation_vec.at<double>(2),
-          position.x, position.y, position.z
-          );
 /*
     NSLog(@"Camera matrix:\n[%0.1f, %0.1f, %0.1f,\n%0.1f, %0.1f, %0.1f,\n%0.1f, %0.1f, %0.1f]",
           out_intrinsics.at<double>(0),
@@ -327,22 +317,36 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
 
     // Correct for front camera mirroring
 
-//    double smooth_euler_0 = filter(fmodf(euler_angle.at<double>(0), 360), frame_number, (2*68)) * M_PI/180;
-//    double smooth_euler_1 = filter(fmodf(euler_angle.at<double>(1), 360), frame_number, (2*68)+1) * M_PI/180;
-//    double smooth_euler_2 = filter(fmodf(euler_angle.at<double>(2), 360), frame_number, (2*68)+2) * M_PI/180;
-//    self.headPoseAngle = SCNVector3Make(M_PI + smooth_euler_0, M_PI + smooth_euler_1, -smooth_euler_2);
+    if (SMOOTH_PROJECTION) {
+        double smooth_euler_0 = filter(fmodf(euler_angle.at<double>(0), 360), frame_number, (2*68)) * M_PI/180;
+        double smooth_euler_1 = filter(fmodf(euler_angle.at<double>(1), 360), frame_number, (2*68)+1) * M_PI/180;
+        //    double smooth_euler_2 = filter(fmodf(euler_angle.at<double>(2), 360), frame_number, (2*68)+2) * M_PI/180;
+        self.headPoseAngle = SCNVector3Make(M_PI + smooth_euler_0, M_PI + smooth_euler_1, -euler_angle.at<double>(2) * M_PI / 180);
+    } else {
 
-    self.headPoseAngle =
-    SCNVector3Make(M_PI + (euler_angle.at<double>(0) * M_PI / 180),
-                   M_PI + (euler_angle.at<double>(1) * M_PI / 180),
-                   -euler_angle.at<double>(2) * M_PI / 180);
-//    SCNVector3Make(fmodf(M_PI + (euler_angle.at<double>(0) * M_PI / 180), 2*M_PI),
-//                   fmodf(M_PI + (euler_angle.at<double>(1) * M_PI / 180), 2*M_PI),
-//                   -fmodf(euler_angle.at<double>(2) * M_PI / 180, 2*M_PI));
+        self.headPoseAngle =
+        SCNVector3Make(M_PI + (euler_angle.at<double>(0) * M_PI / 180),
+                       M_PI + (euler_angle.at<double>(1) * M_PI / 180),
+                       -euler_angle.at<double>(2) * M_PI / 180);
+    }
+
+    // Get the hacked up position vector
+    SCNVector3 position = [self estimatePositionFromShape:shape width:width height:height angle: self.headPoseAngle];
+
     self.headPosition = position;
-//    SCNVector3Make(out_translation.at<double>(0),
-//                   out_translation.at<double>(1),
-//                   out_translation.at<double>(2));
+
+    NSLog(@"R: %0.2f, %0.2f, %0.2f, T: %0.2f, %0.2f, %0.2f, T2: %0.2f, %0.2f, %0.2f, T3: %0.2f, %0.2f, %0.2f",
+          euler_angle.at<double>(0),
+          euler_angle.at<double>(1),
+          euler_angle.at<double>(2),
+          out_translation.at<double>(0),
+          out_translation.at<double>(1),
+          out_translation.at<double>(2),
+          translation_vec.at<double>(0),
+          translation_vec.at<double>(1),
+          translation_vec.at<double>(2),
+          position.x, position.y, position.z
+          );
 }
 
 /* this is a total hack just to see if I can get anywhere close
@@ -350,6 +354,7 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
 - (SCNVector3)estimatePositionFromShape:(std::vector<dlib::point> &)shape
                                   width:(size_t)width
                                  height:(size_t)height
+                                  angle:(SCNVector3)angle
 {
     static const double downscale_factor_z = 750;
 
@@ -373,12 +378,15 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
 
     double divisor = 1.5;// self.slider1Value * 3; // 1.44
     double downscale_factor = 722;// self.slider2Value * 1000; // 689
-    double z = ((double)width/divisor) - (max_x - min_x);
 
     NSLog(@"divisor: %0.2f / downscale factor: %0.1f", divisor, downscale_factor);
-    NSLog(@"I think Z is: %0.2f", z/downscale_factor);
+//    double z = ((double)width/divisor) - abs((max_x - min_x)/cosf(angle.y));
+    double z = ((double)width/divisor) - (max_x - min_x);
+    NSLog(@"z: %0.1f / y angle: %0.2f / cos y %0.2f", z, angle.y, cosf(angle.y));
+    z = z/downscale_factor;
+    NSLog(@"I think Z is: %0.2f", z);
 
-    return SCNVector3Make(x, y, z/downscale_factor);
+    return SCNVector3Make(x, y, z);
 }
 
 @end

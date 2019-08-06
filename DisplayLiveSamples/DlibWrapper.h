@@ -27,7 +27,7 @@
 @property (assign) double slider1Value;
 @property (assign) double slider2Value;
 
-// For the camera FOV matrix
+// Intrinsics for the camera FOV matrix
 @property (assign) double cameraFx;
 @property (assign) double cameraFy;
 @property (assign) double cameraCx;
