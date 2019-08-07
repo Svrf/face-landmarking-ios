@@ -19,11 +19,11 @@
 #include "DisplayLiveSamples-Bridging-Header.h"
 
 // How much larger to expand the discovered face rectangle
-const static unsigned int FACE_RECT_OVERFLOW=10;
+static unsigned int FACE_RECT_OVERFLOW=10;
 const static bool SMOOTH_POINTS = true; /* Filter face detection points */
 const static bool SMOOTH_PROJECTION = false; /* Filter projection points */
-const static double FRAME_ADVANCE = 0.09; /* Smaller = more responsive, more noise */
-const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rect around face */
+const static double FRAME_ADVANCE = 0.069; /* higher = more responsive, more noise */
+const static bool DRAW_FACE_DETECTION_POINTS = true; /* Points for face and rect around face */
 
 @interface DlibWrapper ()
 
@@ -78,6 +78,16 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
     self.prepared = YES;
 }
 
+- (void)setSlider1Value:(double)slider1Value {
+    _slider1Value = slider1Value;
+    FACE_RECT_OVERFLOW = 5 + (unsigned int)(_slider1Value*100);
+    NSLog(@"Face rect overflow: %ul", FACE_RECT_OVERFLOW);
+}
+
+//- (double)slider1Value {
+//    return _slider1Value;
+//}
+
 - (void)doWorkOnSampleBuffer:(CMSampleBufferRef)sampleBuffer inRects:(NSArray<NSValue *> *)rects {
     
     if (!self.prepared) {
@@ -96,7 +106,6 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
     _cameraBufferSize = CGSizeMake(width, height);
     
     // set_size expects rows, cols format
-    NSLog(@"Image dimensions: %d, %d", width, height);
     img.set_size(height, width);
     
     // copy samplebuffer image data into dlib image format
@@ -128,7 +137,7 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
 //    std::vector<dlib::rectangle> faces = detector(img);
 
     // for the first detected face
-    if (convertedRectangles.size() > 0) {
+    if (convertedRectangles.size() > 0 && convertedRectangles[0].left() > 0 && convertedRectangles[0].right() < width) {
         dlib::rectangle oneFaceRect = convertedRectangles[0];
         std::vector<dlib::point> smoothed_points;
 
@@ -244,13 +253,17 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
         self.cameraFx, 0.0, self.cameraCx,
         0.0, self.cameraFy, self.cameraCy,
         0.0, 0.0, 1.0 };
-    double D[5] = { 7.0834633684407095e-002, 6.9140193737175351e-002, 0.0, 0.0, -1.3073460323689292e+000 };
+//    double D[5] = { 7.0834633684407095e-002, 6.9140193737175351e-002, 0.0, 0.0, -1.3073460323689292e+000 };
+    // Source: https://medium.com/@tomas789/iphone-calibration-camera-imu-and-kalibr-33b8645fb0aa (iPhone 7 Plus)
+    double D[4] = { 0.03745065, -0.05696337, 0.00147054, 0.00316134 };
     //fill in cam intrinsics and distortion coefficients
     cv::Mat cam_matrix = cv::Mat(3, 3, CV_64FC1, K);
-    cv::Mat dist_coeffs = cv::Mat(5, 1, CV_64FC1, D);
+    cv::Mat dist_coeffs = cv::Mat(4, 1, CV_64FC1, D);
 
     //2D ref points(image coordinates), referenced from detected facial feature
     std::vector<cv::Point2d> image_pts;
+    std::vector<cv::Point2d> p3p_image_pts;
+    std::vector<cv::Point3d> p3p_object_pts;
 
     //result
     cv::Mat rotation_vec;                           //3 x 1
@@ -282,8 +295,23 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
     image_pts.push_back(cv::Point2d(shape[57].x(), shape[57].y())); //#57 mouth central bottom corner
     image_pts.push_back(cv::Point2d(shape[8].x(), shape[8].y()));   //#8 chin corner
 
+    // For P3P solve
+    /*
+    p3p_image_pts.push_back(cv::Point2d(shape[17].x(), shape[17].y())); //#17 left brow left corner
+    p3p_image_pts.push_back(cv::Point2d(shape[26].x(), shape[26].y())); //#26 right brow right corner
+    p3p_image_pts.push_back(cv::Point2d(shape[57].x(), shape[57].y())); //#57 mouth central bottom corner
+    p3p_image_pts.push_back(cv::Point2d(shape[35].x(), shape[35].y())); //#35 nose right corner
+
+    p3p_object_pts.push_back(cv::Point3d(6.825897, 6.760612, 4.402142));     //#33 left brow left corner
+    p3p_object_pts.push_back(cv::Point3d(-6.825897, 6.760612, 4.402142));    //#38 right brow right corner
+    p3p_object_pts.push_back(cv::Point3d(0.000000, -3.116408, 6.097667));    //#45 mouth central bottom corner
+    p3p_object_pts.push_back(cv::Point3d(-2.005628, 1.409845, 6.165652));    //#49 nose right corner
+    cv::solvePnP(p3p_object_pts, p3p_image_pts, cam_matrix, dist_coeffs, rotation_vec, translation_vec, false, cv::SOLVEPNP_P3P);
+
+*/
+
     //calc pose
-    cv::solvePnP(object_pts, image_pts, cam_matrix, cv::noArray(), rotation_vec, translation_vec, false, cv::SOLVEPNP_EPNP);
+    cv::solvePnP(object_pts, image_pts, cam_matrix, dist_coeffs, rotation_vec, translation_vec, false, cv::SOLVEPNP_DLS);
 
 //    std::vector<cv::Point3d> reprojectsrc;
 //    std::vector<cv::Point2d> reprojectdst;
@@ -318,12 +346,11 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
     // Correct for front camera mirroring
 
     if (SMOOTH_PROJECTION) {
-        double smooth_euler_0 = filter(fmodf(euler_angle.at<double>(0), 360), frame_number, (2*68)) * M_PI/180;
-        double smooth_euler_1 = filter(fmodf(euler_angle.at<double>(1), 360), frame_number, (2*68)+1) * M_PI/180;
-        //    double smooth_euler_2 = filter(fmodf(euler_angle.at<double>(2), 360), frame_number, (2*68)+2) * M_PI/180;
-        self.headPoseAngle = SCNVector3Make(M_PI + smooth_euler_0, M_PI + smooth_euler_1, -euler_angle.at<double>(2) * M_PI / 180);
+        double smooth_euler_0 = filter(euler_angle.at<double>(0), frame_number, (2*68)+0) * M_PI/180;
+        double smooth_euler_1 = filter(euler_angle.at<double>(1), frame_number, (2*68)+1) * M_PI/180;
+        double smooth_euler_2 = filter(fmodf(euler_angle.at<double>(2) + 180, 360), frame_number, (2*68)+2) * M_PI/180;
+        self.headPoseAngle = SCNVector3Make(M_PI + smooth_euler_0, M_PI + smooth_euler_1, -smooth_euler_2 - M_PI);//euler_angle.at<double>(2) * M_PI / 180);
     } else {
-
         self.headPoseAngle =
         SCNVector3Make(M_PI + (euler_angle.at<double>(0) * M_PI / 180),
                        M_PI + (euler_angle.at<double>(1) * M_PI / 180),
@@ -356,8 +383,6 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
                                  height:(size_t)height
                                   angle:(SCNVector3)angle
 {
-    static const double downscale_factor_z = 750;
-
     double x = 0;
     double y = 0;
     double min_x = 1000000;

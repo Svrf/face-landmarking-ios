@@ -25,6 +25,8 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
     var rollWarning: UILabel?
     
     var currentMetadata: [AnyObject]
+
+    var metadataOutput: AVCaptureMetadataOutput?
     
     override init() {
         currentMetadata = []
@@ -83,6 +85,7 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
         if session.canAddOutput(metaOutput) {
             session.addOutput(metaOutput)
         }
+        metadataOutput = metaOutput
         
         session.commitConfiguration()
         
@@ -111,9 +114,6 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
                        didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
 
-        yawWarning?.isHidden = true
-        rollWarning?.isHidden = true
-
         if !currentMetadata.isEmpty {
             var yawOverride:CGFloat?
             var rollOverride:CGFloat?
@@ -131,26 +131,37 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
             }
             
             wrapper?.doWork(on: sampleBuffer, inRects: boundsArray)
-            if let angle = wrapper?.headPoseAngle, let position = wrapper?.headPosition,
+            if var angle = wrapper?.headPoseAngle, let position = wrapper?.headPosition,
                 (position.x != 0 || position.y != 0 || position.z != 0)  {
                 DispatchQueue.main.async { 
                     self.refNode?.isHidden = false
+                    var validAngle = true
                     // TODO: Use these as references to de-noise the data
                     if let roll = rollOverride {
                         let adjustedRoll = (Float(roll)*Float.pi/180) - Float.pi/2
-                        if fabs(adjustedRoll - angle.z) > Float.pi/2 {
+                        let rollDiff = min(fabs(adjustedRoll - angle.z), fabs(adjustedRoll - angle.z - 2*Float.pi))
+                        if rollDiff > Float.pi/2 {
                             self.rollWarning?.isHidden = false
-                            self.rollWarning?.text = String(format:"Roll off: %0.2f", fabs(adjustedRoll - angle.z))
+                            self.rollWarning?.text = String(format:"Roll off: %0.2f", rollDiff)
+//                            validAngle = false
+                        } else {
+                            self.rollWarning?.isHidden = true
                         }
                     }
                     if let yaw = yawOverride {
                         let adjustedYaw = -(Float(yaw)*Float.pi/180) + Float.pi
-                        if fabs(adjustedYaw - angle.y) > Float.pi/2 {
+                        let yawDiff = min(fabs(adjustedYaw - angle.y), fabs(adjustedYaw - angle.y - 2*Float.pi))
+                        if yawDiff > Float.pi/2 {
                             self.yawWarning?.isHidden = false
-                            self.yawWarning?.text = String(format:"Yaw off: %0.2f", fabs(adjustedYaw - angle.y))
+                            self.yawWarning?.text = String(format:"Yaw off: %0.2f", yawDiff)
+  //                          validAngle = false
+                        } else {
+                            self.yawWarning?.isHidden = true
                         }
                     }
-                    self.refNode?.eulerAngles = angle
+                    if (validAngle) {
+                        self.refNode?.eulerAngles = angle
+                    }
                     let scaledPosition = SCNVector3(x: position.x * Float(self.scnView!.frame.size.width/self.wrapper!.cameraBufferSize.width),
                                                     y: position.y * Float(self.scnView!.frame.size.height/self.wrapper!.cameraBufferSize.height),
                                                     z: position.z)
