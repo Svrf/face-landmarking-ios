@@ -14,6 +14,7 @@
 #include <dlib/opencv.h>
 #include <math.h>
 #include <opencv2/calib3d.hpp>
+#include <dlib/image_processing/frontal_face_detector.h>
 
 #include "OneEuroFaceFilter.h"
 #include "DisplayLiveSamples-Bridging-Header.h"
@@ -34,6 +35,7 @@ const static bool DRAW_FACE_DETECTION_POINTS = true; /* Points for face and rect
 @end
 @implementation DlibWrapper {
     dlib::shape_predictor sp;
+    dlib::frontal_face_detector detector;
 
     // 3d representation of face points for reverse-projection
     std::vector<cv::Point3d> object_pts;
@@ -47,6 +49,7 @@ const static bool DRAW_FACE_DETECTION_POINTS = true; /* Points for face and rect
     self = [super init];
     if (self) {
         _prepared = NO;
+        detector = dlib::get_frontal_face_detector();
         frame_number = 0;
 
         //fill in 3D ref points(world coordinates), model referenced from http://aifi.isr.uc.pt/Downloads/OpenGL/glAnthropometric3DModel.cpp
@@ -137,7 +140,7 @@ const static bool DRAW_FACE_DETECTION_POINTS = true; /* Points for face and rect
 //    std::vector<dlib::rectangle> faces = detector(img);
 
     // for the first detected face
-    if (convertedRectangles.size() > 0 && convertedRectangles[0].left() > 0 && convertedRectangles[0].right() < width) {
+    if (convertedRectangles.size() > 0 && convertedRectangles[0].left() > 0 && convertedRectangles[0].right() < width-1) {
         dlib::rectangle oneFaceRect = convertedRectangles[0];
         std::vector<dlib::point> smoothed_points;
 
@@ -161,7 +164,7 @@ const static bool DRAW_FACE_DETECTION_POINTS = true; /* Points for face and rect
         }
 
         // reverse-project the face points to determine pose
-        [self updateHeadPose:smoothed_points width:width height:height];
+        [self updateHeadPose_v3:smoothed_points width:width height:height];
     } else {
         self.headPosition = SCNVector3Zero;
     }
@@ -229,7 +232,178 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
 
 // MARK: - Head pose
 
-- (void)updateHeadPose:(std::vector<dlib::point> &)shape width:(size_t)width height:(size_t)height
+- (void)updateHeadPose_v2:(std::vector<dlib::point> &)shape width:(size_t)width height:(size_t)height
+{
+    std::vector<double> rv(3), tv(3);
+    cv::Mat rvec(rv),tvec(tv);
+    cv::Vec3d eav;
+
+    // Labelling the 3D Points derived from a 3D model of human face.
+    // You may replace these points as per your custom 3D head model if any
+    std::vector<cv::Point3f > modelPoints;
+    modelPoints.push_back(cv::Point3f(2.37427,110.322,21.7776));    // l eye (v 314)
+    modelPoints.push_back(cv::Point3f(70.0602,109.898,20.8234));    // r eye (v 0)
+    modelPoints.push_back(cv::Point3f(36.8301,78.3185,52.0345));    //nose (v 1879)
+    modelPoints.push_back(cv::Point3f(14.8498,51.0115,30.2378));    // l mouth (v 1502)
+    modelPoints.push_back(cv::Point3f(58.1825,51.0115,29.6224));    // r mouth (v 695)
+    modelPoints.push_back(cv::Point3f(-61.8886f,127.797,-89.4523f));  // l ear (v 2011)
+    modelPoints.push_back(cv::Point3f(127.603,126.9,-83.9129f));     // r ear (v 1138)
+
+    // labelling the position of corresponding feature points on the input image.
+    std::vector<cv::Point2f> srcImagePoints = {
+        cv::Point2f(shape[45].x(), shape[45].y()), // left eye
+        cv::Point2f(shape[36].x(), shape[36].y()), // right eye
+        cv::Point2f(shape[33].x(), shape[33].y()), // nose
+        cv::Point2f(shape[54].x(), shape[54].y()), // left lip corner
+        cv::Point2f(shape[48].x(), shape[48].y()), // right lip corner
+        cv::Point2f(shape[16].x(), shape[16].y()), // left ear
+        cv::Point2f(shape[0].x(), shape[0].y()), // right ear
+    };
+
+    cv::Mat ip(srcImagePoints);
+
+    cv::Mat op = cv::Mat(modelPoints);
+    cv::Scalar m = mean(cv::Mat(modelPoints));
+
+    rvec = cv::Mat(rv);
+    double _d[9] = {1,0,0,
+        0,-1,0,
+        0,0,-1};
+    Rodrigues(cv::Mat(3,3,CV_64FC1,_d),rvec);
+    tv[0]=0;tv[1]=0;tv[2]=1;
+    tvec = cv::Mat(tv);
+
+    double _cm[9] = {
+        self.cameraFx, 0.0, self.cameraCx,
+        0.0, self.cameraFy, self.cameraCy,
+        0.0, 0.0, 1.0 };
+
+    cv::Mat camMatrix = cv::Mat(3,3,CV_64FC1, _cm);
+
+    double _dc[] = {0,0,0,0};
+    solvePnP(op,ip,camMatrix,cv::Mat(1,4,CV_64FC1,_dc),rvec,tvec,false,cv::SOLVEPNP_EPNP);
+
+    double rot[9] = {0};
+    cv::Mat rotM(3,3,CV_64FC1,rot);
+    Rodrigues(rvec,rotM);
+    double* _r = rotM.ptr<double>();
+    printf("rotation mat: \n %.3f %.3f %.3f\n%.3f %.3f %.3f\n%.3f %.3f %.3f\n",
+           _r[0],_r[1],_r[2],_r[3],_r[4],_r[5],_r[6],_r[7],_r[8]);
+
+    printf("trans vec: \n %.3f %.3f %.3f\n",tv[0],tv[1],tv[2]);
+
+    double _pm[12] = {_r[0],_r[1],_r[2],tv[0],
+        _r[3],_r[4],_r[5],tv[1],
+        _r[6],_r[7],_r[8],tv[2]};
+
+    cv::Mat tmp,tmp1,tmp2,tmp3,tmp4,tmp5;
+    cv::decomposeProjectionMatrix(cv::Mat(3,4,CV_64FC1,_pm),tmp,tmp1,tmp2,tmp3,tmp4,tmp5,eav);
+
+    self.headPoseAngle =
+    SCNVector3Make((float)(eav[0] * M_PI / 180),
+                   -(float)(eav[1] * M_PI / 180),
+                   -(float)(eav[2] * M_PI / 180) + M_PI);
+
+    printf("Face Rotation Angle:  %.5f %.5f %.5f\n",eav[0],eav[1],eav[2]);
+
+    SCNVector3 position = [self estimatePositionFromShape:shape width:width height:height angle: self.headPoseAngle];
+    //    position.z = out_translation.at<double>(2);
+    self.headPosition = position;
+
+}
+
+- (void)updateHeadPose_v3:(std::vector<dlib::point> &)shape width:(size_t)width height:(size_t)height
+{
+    double K[9] = {
+        self.cameraFx, 0.0, self.cameraCx,
+        0.0, self.cameraFy, self.cameraCy,
+        0.0, 0.0, 1.0 };
+
+    /* Calibrated parameters!!!
+     iPhone X:
+     double D[5] = { 1.7479705014455854e-01, -7.3389958871609140e-01,
+     -1.1315715905407971e-03, -2.3005306869031618e-03,
+     8.9658222837817847e-01 };
+     */
+
+    /* iPhone 7: */
+    double D[5] = { 1.6306670740348619e-01, -6.9679269326948057e-01,
+        -1.1975503089872291e-04, -3.7197654044547885e-03,
+        7.6833717412969704e-01 };
+
+    //fill in cam intrinsics and distortion coefficients
+    cv::Mat cam_matrix = cv::Mat(3, 3, CV_64FC1, K);
+    cv::Mat dist_coeffs = cv::Mat(5, 1, CV_64FC1, D);
+
+    //2D ref points(image coordinates), referenced from detected facial feature
+    std::vector<cv::Point2d> image_pts;
+    std::vector<cv::Point2d> p3p_image_pts;
+    std::vector<cv::Point3d> p3p_object_pts;
+
+    //result
+    cv::Mat rotation_vec;                           //3 x 1
+    cv::Mat rotation_mat;                           //3 x 3 R
+    cv::Mat translation_vec;                        //3 x 1 T
+    cv::Mat pose_mat = cv::Mat(3, 4, CV_64FC1);     //3 x 4 R | T
+    cv::Mat euler_angle = cv::Mat(3, 1, CV_64FC1);
+
+    //temp buf for decomposeProjectionMatrix()
+    cv::Mat out_intrinsics = cv::Mat(3, 3, CV_64FC1);
+    cv::Mat out_rotation = cv::Mat(3, 3, CV_64FC1);
+    cv::Mat out_translation = cv::Mat(3, 1, CV_64FC1);
+
+    // -----------------------------------------------------------------
+
+    // Labelling the 3D Points derived from a 3D model of human face.
+    // You may replace these points as per your custom 3D head model if any
+    std::vector<cv::Point3f > model_points = {
+        cv::Point3f(2.37427,110.322,21.7776),    // l eye (v 314)
+        cv::Point3f(70.0602,109.898,20.8234),    // r eye (v 0)
+        cv::Point3f(36.8301,78.3185,52.0345),    //nose (v 1879)
+        cv::Point3f(14.8498,51.0115,30.2378),    // l mouth (v 1502)
+        cv::Point3f(58.1825,51.0115,29.6224),    // r mouth (v 695)
+        cv::Point3f(-61.8886f,127.797,-89.4523f),  // l ear (v 2011)
+        cv::Point3f(127.603,126.9,-83.9129f)
+    };     // r ear (v 1138)
+
+    // labelling the position of corresponding feature points on the input image.
+    std::vector<cv::Point2f> src_image_points = {
+        cv::Point2f((shape[42].x() + shape[45].x())/2, (shape[42].y() + shape[45].y())/2), // left eye
+        cv::Point2f((shape[39].x() + shape[36].x())/2, (shape[39].y() + shape[36].y())/2), // right eye
+        cv::Point2f(shape[30].x(), shape[30].y()), // nose
+        cv::Point2f(shape[54].x(), shape[54].y()), // left lip corner
+        cv::Point2f(shape[48].x(), shape[48].y()), // right lip corner
+        cv::Point2f(shape[16].x(), shape[16].y()), // left ear
+        cv::Point2f(shape[0].x(), shape[0].y()), // right ear
+    };
+
+    //calc pose
+    cv::solvePnP(model_points, src_image_points, cam_matrix, dist_coeffs, rotation_vec, translation_vec, false, cv::SOLVEPNP_DLS);
+
+    //calc euler angle
+
+    // Convert rotation vector into rotation matrix
+    cv::Rodrigues(rotation_vec, rotation_mat);
+
+    // Combine rotation vector and translation vector into pose matrix
+    cv::hconcat(rotation_mat, translation_vec, pose_mat);
+
+    // Extract translation and euler angle from pose matrix
+    cv::decomposeProjectionMatrix(pose_mat, out_intrinsics, out_rotation, out_translation, cv::noArray(), cv::noArray(), cv::noArray(), euler_angle);
+
+    // Correct for front camera mirroring
+
+    self.headPoseAngle =
+    SCNVector3Make(M_PI + ((15 + euler_angle.at<double>(0)) * M_PI / 180),
+                   M_PI + ((10 + euler_angle.at<double>(1)) * M_PI / 180),
+                   -(-5 + euler_angle.at<double>(2)) * M_PI / 180);
+
+    // Get the hacked up position vector
+    SCNVector3 position = [self estimatePositionFromShape:shape width:width height:height angle: self.headPoseAngle];
+    self.headPosition = position;
+}
+
+- (void)updateHeadPose_v1:(std::vector<dlib::point> &)shape width:(size_t)width height:(size_t)height
 {
     // ------------------------------------------
     // TODO: Move this to an initialization step
@@ -360,7 +534,7 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
 
     // Get the hacked up position vector
     SCNVector3 position = [self estimatePositionFromShape:shape width:width height:height angle: self.headPoseAngle];
-
+//    position.z = out_translation.at<double>(2);
     self.headPosition = position;
 
     NSLog(@"R: %0.2f, %0.2f, %0.2f, T: %0.2f, %0.2f, %0.2f, T2: %0.2f, %0.2f, %0.2f, T3: %0.2f, %0.2f, %0.2f",

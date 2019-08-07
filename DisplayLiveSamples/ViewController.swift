@@ -36,10 +36,10 @@ class ViewController: UIViewController {
         let cameraNode = SCNNode()
         cameraNode.camera = camera
         if let fov = sessionHandler.hfov {
-            camera.fieldOfView = CGFloat(fov/7)
+            camera.fieldOfView = CGFloat(fov/2)
             camera.projectionDirection = .horizontal
         }
-        cameraNode.position = SCNVector3(x: 0.0, y: 0.0, z: 1.3)
+        cameraNode.position = SCNVector3(x: 0.0, y: 0.0, z: 1)
 
         let light = SCNLight()
         light.type = .omni
@@ -64,6 +64,7 @@ class ViewController: UIViewController {
         preview.layer.insertSublayer(layer, below: sceneView.layer)
 
         let glasses = try! loadFaceNode("eyewear1.glb")
+        glasses.scale = SCNVector3(3.2,3.2,3.2) // TODO why does this need to be scaled up so much?
         glasses.position = SCNVector3(0, 0, 0)
 
 //        let cubeGeometry = SCNBox(width: 1.0, height: 1.0, length: 1.0, chamferRadius: 0.0)
@@ -74,6 +75,15 @@ class ViewController: UIViewController {
 
         view.layoutIfNeeded()
     }
+
+    @IBAction func slider1Changed(_ sender: UISlider) {
+        sessionHandler.updateSlider1(sender.value)
+    }
+
+    @IBAction func slider2Changed(_ sender: UISlider) {
+        sessionHandler.updateSlider2(sender.value)
+    }
+
 
     // MARK: - Model management
 
@@ -96,14 +106,6 @@ class ViewController: UIViewController {
         faceFilterNode.morpher?.calculationMode = SCNMorpherCalculationMode.normalized
 
         return faceFilterNode
-    }
-
-    @IBAction func slider1Changed(_ sender: UISlider) {
-        sessionHandler.updateSlider1(sender.value)
-    }
-
-    @IBAction func slider2Changed(_ sender: UISlider) {
-        sessionHandler.updateSlider2(sender.value)
     }
 
     /**
