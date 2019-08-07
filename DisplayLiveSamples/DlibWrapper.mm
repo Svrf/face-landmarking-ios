@@ -253,12 +253,28 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
         self.cameraFx, 0.0, self.cameraCx,
         0.0, self.cameraFy, self.cameraCy,
         0.0, 0.0, 1.0 };
-//    double D[5] = { 7.0834633684407095e-002, 6.9140193737175351e-002, 0.0, 0.0, -1.3073460323689292e+000 };
-    // Source: https://medium.com/@tomas789/iphone-calibration-camera-imu-and-kalibr-33b8645fb0aa (iPhone 7 Plus)
-    double D[4] = { 0.03745065, -0.05696337, 0.00147054, 0.00316134 };
+
+/*
+    double K[9] = {
+        1.4551780026980582e+03, 0., 9.5902575796350970e+02, 0.,
+        1.4576596237871390e+03, 5.4933833052386569e+02, 0., 0., 1.
+    };*/
+
+    /* Calibrated parameters!!!
+     iPhone X:
+    double D[5] = { 1.7479705014455854e-01, -7.3389958871609140e-01,
+        -1.1315715905407971e-03, -2.3005306869031618e-03,
+        8.9658222837817847e-01 };
+     */
+
+    /* iPhone 7: */
+    double D[5] = { 1.6306670740348619e-01, -6.9679269326948057e-01,
+        -1.1975503089872291e-04, -3.7197654044547885e-03,
+        7.6833717412969704e-01 };
+
     //fill in cam intrinsics and distortion coefficients
     cv::Mat cam_matrix = cv::Mat(3, 3, CV_64FC1, K);
-    cv::Mat dist_coeffs = cv::Mat(4, 1, CV_64FC1, D);
+    cv::Mat dist_coeffs = cv::Mat(5, 1, CV_64FC1, D);
 
     //2D ref points(image coordinates), referenced from detected facial feature
     std::vector<cv::Point2d> image_pts;
@@ -294,21 +310,6 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
     image_pts.push_back(cv::Point2d(shape[54].x(), shape[54].y())); //#54 mouth right corner
     image_pts.push_back(cv::Point2d(shape[57].x(), shape[57].y())); //#57 mouth central bottom corner
     image_pts.push_back(cv::Point2d(shape[8].x(), shape[8].y()));   //#8 chin corner
-
-    // For P3P solve
-    /*
-    p3p_image_pts.push_back(cv::Point2d(shape[17].x(), shape[17].y())); //#17 left brow left corner
-    p3p_image_pts.push_back(cv::Point2d(shape[26].x(), shape[26].y())); //#26 right brow right corner
-    p3p_image_pts.push_back(cv::Point2d(shape[57].x(), shape[57].y())); //#57 mouth central bottom corner
-    p3p_image_pts.push_back(cv::Point2d(shape[35].x(), shape[35].y())); //#35 nose right corner
-
-    p3p_object_pts.push_back(cv::Point3d(6.825897, 6.760612, 4.402142));     //#33 left brow left corner
-    p3p_object_pts.push_back(cv::Point3d(-6.825897, 6.760612, 4.402142));    //#38 right brow right corner
-    p3p_object_pts.push_back(cv::Point3d(0.000000, -3.116408, 6.097667));    //#45 mouth central bottom corner
-    p3p_object_pts.push_back(cv::Point3d(-2.005628, 1.409845, 6.165652));    //#49 nose right corner
-    cv::solvePnP(p3p_object_pts, p3p_image_pts, cam_matrix, dist_coeffs, rotation_vec, translation_vec, false, cv::SOLVEPNP_P3P);
-
-*/
 
     //calc pose
     cv::solvePnP(object_pts, image_pts, cam_matrix, dist_coeffs, rotation_vec, translation_vec, false, cv::SOLVEPNP_DLS);
