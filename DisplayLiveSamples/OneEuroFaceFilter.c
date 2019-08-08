@@ -26,7 +26,8 @@ static const unsigned long NUM_POINTS = (68*2) + 3;
 
 double min_cutoff = 1.0;
 double beta = 0.0;
-double d_cutoff = 3.0;
+double d_cutoff = 1.0;
+double initial_noise_threshold = 0.5;
 
 double prev_x[NUM_POINTS];
 double prev_dx[NUM_POINTS];
@@ -101,7 +102,12 @@ double filter(double x, double t, unsigned int index) {
     prev_dx[index] = dx_hat;
     prev_t[index] = t;
 
-    return x_hat;
+    // Don't start returning filtered data 'til it's ready
+    if (t > initial_noise_threshold) {
+        return x_hat;
+    } else {
+        return x;
+    }
 }
 
 #ifdef __cplusplus

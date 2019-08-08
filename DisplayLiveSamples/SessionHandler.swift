@@ -169,7 +169,7 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
                         if yawDiff > Float.pi/3 {
                             self.yawWarning?.isHidden = false
                             self.yawWarning?.text = String(format:"Yaw off: %0.2f", yawDiff)
-                            self.refNode?.isHidden = true
+                            self.hideFaceFilters()
   //                          validAngle = false
                         } else {
                             self.refNode?.isHidden = false
@@ -188,11 +188,11 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
                 }
             } else {
                 DispatchQueue.main.async {
-                    self.refNode?.isHidden = true
+                    self.hideFaceFilters()
                 }
             }
         } else {
-            self.refNode?.isHidden = true
+            hideFaceFilters()
         }
 
         layer.enqueue(sampleBuffer)
@@ -206,5 +206,10 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
     
     func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
         currentMetadata = metadataObjects as [AnyObject]
+    }
+
+    private func hideFaceFilters() {
+        self.refNode?.isHidden = true
+        wrapper?.resetFrameNumber()
     }
 }

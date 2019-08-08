@@ -15,6 +15,7 @@
 - (instancetype)init;
 - (void)doWorkOnSampleBuffer:(CMSampleBufferRef)sampleBuffer inRects:(NSArray<NSValue *> *)rects;
 - (void)prepare;
+- (void)resetFrameNumber;
 
 @property (assign) SCNVector3 headPoseAngle;
 // Head position is:

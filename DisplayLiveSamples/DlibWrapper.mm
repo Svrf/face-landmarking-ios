@@ -87,6 +87,10 @@ const static bool DRAW_FACE_DETECTION_POINTS = true; /* Points for face and rect
     NSLog(@"Face rect overflow: %ul", FACE_RECT_OVERFLOW);
 }
 
+- (void)resetFrameNumber {
+    frame_number = 0.0;
+}
+
 //- (double)slider1Value {
 //    return _slider1Value;
 //}
@@ -584,8 +588,8 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
     double downscale_factor = 722;// self.slider2Value * 1000; // 689
 
     NSLog(@"divisor: %0.2f / downscale factor: %0.1f", divisor, downscale_factor);
-//    double z = ((double)width/divisor) - abs((max_x - min_x)/cosf(angle.y));
-    double z = ((double)width/divisor) - (max_x - min_x);
+    double z = ((double)width/divisor) - abs((max_x - min_x)/cosf(angle.y));
+//    double z = ((double)width/divisor) - (max_x - min_x);
     NSLog(@"z: %0.1f / y angle: %0.2f / cos y %0.2f", z, angle.y, cosf(angle.y));
     z = z/downscale_factor;
     NSLog(@"I think Z is: %0.2f", z);
