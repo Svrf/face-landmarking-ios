@@ -400,6 +400,10 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
 
     // Get the hacked up position vector
     SCNVector3 position = [self estimatePositionFromShape:shape width:width height:height angle: self.headPoseAngle];
+//    double newZ = (out_translation.at<double>(2)+1);
+//    NSLog(@"%%%% Z: %0.2f vs %0.2f", newZ, position.z);
+//    position.z = newZ;
+
     self.headPosition = position;
 }
 

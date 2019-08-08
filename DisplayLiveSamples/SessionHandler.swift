@@ -115,19 +115,34 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
                        from connection: AVCaptureConnection) {
 
         if !currentMetadata.isEmpty {
-            var yawOverride:CGFloat?
-            var rollOverride:CGFloat?
+            var yawMetadata:CGFloat?
+            var rollMetadata:CGFloat?
             let boundsArray = currentMetadata
                 .compactMap { $0 as? AVMetadataFaceObject }
                 .map { (faceObject) -> NSValue in
-                    let convertedObject = output.transformedMetadataObject(for: faceObject, connection: connection)
+                    let convertedObject = output.transformedMetadataObject(for: faceObject, connection: connection)!
+                    var rect = convertedObject.bounds
                     if (faceObject.hasYawAngle) {
-                        yawOverride = faceObject.yawAngle
+                        yawMetadata = faceObject.yawAngle
+                        print("Yaw metadata: \(String(describing: yawMetadata))")
+                        if (yawMetadata! > 180.0 && yawMetadata! <= 315.0) {
+                            rect = CGRect(x: rect.minX,// - (rect.width/4),
+                                          y: rect.minY,
+                                          width: rect.width * 4/5,
+                                          height: rect.height)
+                        }
+                        if (yawMetadata! >= 45.0 && yawMetadata! < 180.0) {
+                            rect = CGRect(x: rect.minX + (rect.width * 1/5),
+                                y: rect.minY,
+                                width: rect.width * 4/5,
+                                height: rect.height)
+                        }
                     }
                     if (faceObject.hasRollAngle) {
-                        rollOverride = faceObject.rollAngle
+                        rollMetadata = faceObject.rollAngle
                     }
-                    return NSValue(cgRect: convertedObject!.bounds)
+
+                    return NSValue(cgRect: rect)
             }
             
             wrapper?.doWork(on: sampleBuffer, inRects: boundsArray)
@@ -137,7 +152,7 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
                     self.refNode?.isHidden = false
                     var validAngle = true
                     // TODO: Use these as references to de-noise the data
-                    if let roll = rollOverride {
+                    if let roll = rollMetadata {
                         let adjustedRoll = (Float(roll)*Float.pi/180) - Float.pi/2
                         let rollDiff = min(fabs(adjustedRoll - angle.z), fabs(adjustedRoll - angle.z - 2*Float.pi))
                         if rollDiff > Float.pi/2 {
@@ -148,14 +163,17 @@ class SessionHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, A
                             self.rollWarning?.isHidden = true
                         }
                     }
-                    if let yaw = yawOverride {
+                    if let yaw = yawMetadata {
                         let adjustedYaw = -(Float(yaw)*Float.pi/180) + Float.pi
-                        let yawDiff = min(fabs(adjustedYaw - angle.y), fabs(adjustedYaw - angle.y - 2*Float.pi))
-                        if yawDiff > Float.pi/2 {
+                        let yawDiff = min(fabs(adjustedYaw - angle.y), fabs(adjustedYaw - angle.y + 2*Float.pi))
+                        if yawDiff > Float.pi/3 {
                             self.yawWarning?.isHidden = false
                             self.yawWarning?.text = String(format:"Yaw off: %0.2f", yawDiff)
+                            self.refNode?.isHidden = true
   //                          validAngle = false
                         } else {
+                            self.refNode?.isHidden = false
+
                             self.yawWarning?.isHidden = true
                         }
                     }

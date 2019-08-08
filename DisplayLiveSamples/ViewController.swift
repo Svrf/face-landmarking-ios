@@ -96,7 +96,7 @@ class ViewController: UIViewController {
         if let occluderNode = sceneNode.childNode(withName: "Occluder",
                                                   recursively: true) {
             faceFilterNode.addChildNode(occluderNode)
-            setOccluderNode(node: occluderNode)
+//            setOccluderNode(node: occluderNode)
         }
 
         if let headNode = sceneNode.childNode(withName: "Head", recursively: true) {
