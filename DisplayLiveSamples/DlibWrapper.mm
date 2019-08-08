@@ -23,8 +23,8 @@
 static unsigned int FACE_RECT_OVERFLOW=10;
 const static bool SMOOTH_POINTS = true; /* Filter face detection points */
 const static bool SMOOTH_PROJECTION = false; /* Filter projection points */
-const static double FRAME_ADVANCE = 0.069; /* higher = more responsive, more noise */
-const static bool DRAW_FACE_DETECTION_POINTS = true; /* Points for face and rect around face */
+const static double FRAME_ADVANCE = 0.07; /* higher = more responsive, more noise */
+const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rect around face */
 
 @interface DlibWrapper ()
 
