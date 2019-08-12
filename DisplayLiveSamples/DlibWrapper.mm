@@ -24,7 +24,7 @@ static unsigned int FACE_RECT_OVERFLOW=10;
 const static bool SMOOTH_POINTS = true; /* Filter face detection points */
 const static bool SMOOTH_PROJECTION = false; /* Filter projection points */
 const static double FRAME_ADVANCE = 0.07; /* higher = more responsive, more noise */
-const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rect around face */
+const static bool DRAW_FACE_DETECTION_POINTS = true; /* Points for face and rect around face */
 
 @interface DlibWrapper ()
 
@@ -95,26 +95,21 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
 //    return _slider1Value;
 //}
 
-- (void)doWorkOnSampleBuffer:(CMSampleBufferRef)sampleBuffer inRects:(NSArray<NSValue *> *)rects {
-    
-    if (!self.prepared) {
-        [self prepare];
-    }
-    
-    dlib::array2d<dlib::bgr_pixel> img;
-    
-    // MARK: magic
-    CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+- (void)populateImageArray:(dlib::array2d<dlib::bgr_pixel> &)img
+                     width:(size_t *)width
+                    height:(size_t *)height
+                withBuffer:(CVImageBufferRef)imageBuffer
+{
     CVPixelBufferLockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
 
-    size_t width = CVPixelBufferGetWidth(imageBuffer)+8; //// TODO I had to add 8 here, y tho
-    size_t height = CVPixelBufferGetHeight(imageBuffer);
+    *width = CVPixelBufferGetWidth(imageBuffer)+8; //// TODO: I had to add 8 here, y tho
+    *height = CVPixelBufferGetHeight(imageBuffer);
     char *baseBuffer = (char *)CVPixelBufferGetBaseAddress(imageBuffer);
-    _cameraBufferSize = CGSizeMake(width, height);
-    
+    _cameraBufferSize = CGSizeMake(*width, *height);
+
     // set_size expects rows, cols format
-    img.set_size(height, width);
-    
+    img.set_size(*height, *width);
+
     // copy samplebuffer image data into dlib image format
     img.reset();
     long position = 0;
@@ -128,16 +123,54 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
         char r = baseBuffer[bufferLocation + 2];
         //        we do not need this
         //        char a = baseBuffer[bufferLocation + 3];
-        
+
         dlib::bgr_pixel newpixel(b, g, r);
         pixel = newpixel;
-        
+
         position++;
     }
-    
+
     // unlock buffer again until we need it again
     CVPixelBufferUnlockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
+}
+
+- (void)populateSampleBuffer:(CVImageBufferRef)imageBuffer withImageArray:(dlib::array2d<dlib::bgr_pixel> &)img
+{
+    char *baseBuffer = (char *)CVPixelBufferGetBaseAddress(imageBuffer);
+
+    // copy dlib image data back into samplebuffer
+    img.reset();
+    size_t position = 0;
+    while (img.move_next()) {
+        dlib::bgr_pixel& pixel = img.element();
+
+        // assuming bgra format here
+        long bufferLocation = position * 4; //(row * width + column) * 4;
+        baseBuffer[bufferLocation] = pixel.blue;
+        baseBuffer[bufferLocation + 1] = pixel.green;
+        baseBuffer[bufferLocation + 2] = pixel.red;
+        //        we do not need this
+        //        char a = baseBuffer[bufferLocation + 3];
+
+        position++;
+    }
+    CVPixelBufferUnlockBaseAddress(imageBuffer, 0);
+
+}
+
+- (void)doWorkOnSampleBuffer:(CMSampleBufferRef)sampleBuffer inRects:(NSArray<NSValue *> *)rects {
     
+    if (!self.prepared) {
+        [self prepare];
+    }
+    
+    // MARK: magic
+    CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+
+    dlib::array2d<dlib::bgr_pixel> img;
+    size_t width, height;
+    [self populateImageArray:img width:&width height:&height withBuffer:imageBuffer];
+
     // convert the face bounds list to dlib format
     std::vector<dlib::rectangle> convertedRectangles = [DlibWrapper convertCGRectValueArray:rects];
 
@@ -180,23 +213,7 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
     // lets put everything back where it belongs
     CVPixelBufferLockBaseAddress(imageBuffer, 0);
 
-    // copy dlib image data back into samplebuffer
-    img.reset();
-    position = 0;
-    while (img.move_next()) {
-        dlib::bgr_pixel& pixel = img.element();
-        
-        // assuming bgra format here
-        long bufferLocation = position * 4; //(row * width + column) * 4;
-        baseBuffer[bufferLocation] = pixel.blue;
-        baseBuffer[bufferLocation + 1] = pixel.green;
-        baseBuffer[bufferLocation + 2] = pixel.red;
-        //        we do not need this
-        //        char a = baseBuffer[bufferLocation + 3];
-        
-        position++;
-    }
-    CVPixelBufferUnlockBaseAddress(imageBuffer, 0);
+    [self populateSampleBuffer:imageBuffer withImageArray:img];
 
     frame_number += FRAME_ADVANCE;
 }
@@ -267,7 +284,7 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
     cv::Mat ip(srcImagePoints);
 
     cv::Mat op = cv::Mat(modelPoints);
-    cv::Scalar m = mean(cv::Mat(modelPoints));
+//    cv::Scalar m = mean(cv::Mat(modelPoints));
 
     rvec = cv::Mat(rv);
     double _d[9] = {1,0,0,
