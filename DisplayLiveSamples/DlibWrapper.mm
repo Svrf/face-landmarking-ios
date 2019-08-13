@@ -155,6 +155,40 @@ const static bool DRAW_FACE_DETECTION_POINTS = true; /* Points for face and rect
         position++;
     }
     CVPixelBufferUnlockBaseAddress(imageBuffer, 0);
+}
+
+- (CGRect)findFace:(CVImageBufferRef)imageBuffer {
+    CIDetector *detector = [CIDetector detectorOfType:CIDetectorTypeFace
+                                              context:nil
+                                              options:@{CIDetectorAccuracy: CIDetectorAccuracyHigh,
+                                                        CIDetectorNumberOfAngles: @11
+                                                        }];
+
+
+    CIImage *image = [CIImage imageWithCVImageBuffer:imageBuffer];
+    NSArray<CIFeature *> *features = [detector featuresInImage:image];
+
+    if (features.count > 0) {
+        return features[0].bounds;
+    } else {
+        return CGRectZero;
+    }
+//
+//    if let face = faces.first as? CIFaceFeature {
+//        print("Found face at \(face.bounds)")
+//
+//        if face.hasLeftEyePosition {
+//            print("Found left eye at \(face.leftEyePosition)")
+//        }
+//
+//        if face.hasRightEyePosition {
+//            print("Found right eye at \(face.rightEyePosition)")
+//        }
+//
+//        if face.hasMouthPosition {
+//            print("Found mouth at \(face.mouthPosition)")
+//        }
+//    }
 
 }
 
@@ -172,13 +206,19 @@ const static bool DRAW_FACE_DETECTION_POINTS = true; /* Points for face and rect
     [self populateImageArray:img width:&width height:&height withBuffer:imageBuffer];
 
     // convert the face bounds list to dlib format
-    std::vector<dlib::rectangle> convertedRectangles = [DlibWrapper convertCGRectValueArray:rects];
+//    std::vector<dlib::rectangle> convertedRectangles = [DlibWrapper convertCGRectValueArray:rects];
 
 //    std::vector<dlib::rectangle> faces = detector(img);
 
+    CGRect faceRect = [self findFace:imageBuffer];
+
+    if (faceRect.size.width > 0) {
+
     // for the first detected face
-    if (convertedRectangles.size() > 0 && convertedRectangles[0].left() > 0 && convertedRectangles[0].right() < width-1) {
-        dlib::rectangle oneFaceRect = convertedRectangles[0];
+//    if (convertedRectangles.size() > 0 && convertedRectangles[0].left() > 0 && convertedRectangles[0].right() < width-1) {
+//        dlib::rectangle oneFaceRect = convertedRectangles[0];
+        dlib::rectangle oneFaceRect = [self convertCGRect:faceRect];
+
         std::vector<dlib::point> smoothed_points;
 
         // detect all landmarks
@@ -234,6 +274,11 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
     } else {
         return dlib::rgb_pixel(255, 255, 255);
     }
+}
+
+- (dlib::rectangle)convertCGRect:(CGRect)rect {
+    CGFloat y = _cameraBufferSize.height-rect.origin.y;
+    return dlib::rectangle(rect.origin.x, y - rect.size.height, rect.size.width + rect.origin.x, y);
 }
 
 + (std::vector<dlib::rectangle>)convertCGRectValueArray:(NSArray<NSValue *> *)rects {
