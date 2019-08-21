@@ -10,6 +10,7 @@
 		880D9CDC22F0E80A0072C8D5 /* OneEuroFaceFilter.c in Sources */ = {isa = PBXBuildFile; fileRef = 880D9CDB22F0E80A0072C8D5 /* OneEuroFaceFilter.c */; };
 		880D9CE122F1EFB20072C8D5 /* eyewear1.glb in Resources */ = {isa = PBXBuildFile; fileRef = 880D9CE022F1EFB20072C8D5 /* eyewear1.glb */; };
 		880D9CE222F1EFFC0072C8D5 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 880D9CDF22F1EF880072C8D5 /* Accelerate.framework */; };
+		8890569F230D97DE004F19E9 /* headwear1.glb in Resources */ = {isa = PBXBuildFile; fileRef = 8890569E230D97DE004F19E9 /* headwear1.glb */; };
 		91E6847B06D19EFFAAD9B9F5 /* Pods_DisplayLiveSamplesTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BEC594EBA68637602F397F1F /* Pods_DisplayLiveSamplesTests.framework */; };
 		93357F76D42DA8A0F594E4AC /* Pods_DisplayLiveSamplesUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 919091C9D83465C2A06DDBCE /* Pods_DisplayLiveSamplesUITests.framework */; };
 		A56695F01CE8B34B00BD7EAF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A56695EF1CE8B34B00BD7EAF /* AppDelegate.swift */; };
@@ -19,8 +20,8 @@
 		A56695FA1CE8B34B00BD7EAF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A56695F81CE8B34B00BD7EAF /* LaunchScreen.storyboard */; };
 		A56696051CE8B34B00BD7EAF /* DisplayLiveSamplesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A56696041CE8B34B00BD7EAF /* DisplayLiveSamplesTests.swift */; };
 		A56696101CE8B34B00BD7EAF /* DisplayLiveSamplesUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A566960F1CE8B34B00BD7EAF /* DisplayLiveSamplesUITests.swift */; };
-		A566961E1CE8B4A100BD7EAF /* SessionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A566961D1CE8B4A100BD7EAF /* SessionHandler.swift */; };
-		A5A1B2D21CEA317B00626AC5 /* DlibWrapper.mm in Sources */ = {isa = PBXBuildFile; fileRef = A5A1B2D11CEA317B00626AC5 /* DlibWrapper.mm */; };
+		A566961E1CE8B4A100BD7EAF /* FaceTrackingHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A566961D1CE8B4A100BD7EAF /* FaceTrackingHandler.swift */; };
+		A5A1B2D21CEA317B00626AC5 /* FaceFeatureDetector.mm in Sources */ = {isa = PBXBuildFile; fileRef = A5A1B2D11CEA317B00626AC5 /* FaceFeatureDetector.mm */; };
 		A5A1B2D41CEA35B300626AC5 /* libdlib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A5A1B2D31CEA35B300626AC5 /* libdlib.a */; };
 		A5A1B2D81CEA431600626AC5 /* shape_predictor_68_face_landmarks.dat in Resources */ = {isa = PBXBuildFile; fileRef = A5A1B2D71CEA431600626AC5 /* shape_predictor_68_face_landmarks.dat */; };
 		D190FF14B18D8EDDA507A633 /* Pods_DisplayLiveSamples.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 674D70991213E12B73DCE634 /* Pods_DisplayLiveSamples.framework */; };
@@ -51,6 +52,7 @@
 		880D9CDB22F0E80A0072C8D5 /* OneEuroFaceFilter.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = OneEuroFaceFilter.c; sourceTree = "<group>"; };
 		880D9CDF22F1EF880072C8D5 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		880D9CE022F1EFB20072C8D5 /* eyewear1.glb */ = {isa = PBXFileReference; lastKnownFileType = file; path = eyewear1.glb; sourceTree = "<group>"; };
+		8890569E230D97DE004F19E9 /* headwear1.glb */ = {isa = PBXFileReference; lastKnownFileType = file; path = headwear1.glb; sourceTree = "<group>"; };
 		919091C9D83465C2A06DDBCE /* Pods_DisplayLiveSamplesUITests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_DisplayLiveSamplesUITests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		9BE6C945B43EE0242C595156 /* Pods-DisplayLiveSamplesTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-DisplayLiveSamplesTests.release.xcconfig"; path = "Target Support Files/Pods-DisplayLiveSamplesTests/Pods-DisplayLiveSamplesTests.release.xcconfig"; sourceTree = "<group>"; };
 		A56695EC1CE8B34B00BD7EAF /* DisplayLiveSamples.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DisplayLiveSamples.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -66,10 +68,10 @@
 		A566960B1CE8B34B00BD7EAF /* DisplayLiveSamplesUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DisplayLiveSamplesUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A566960F1CE8B34B00BD7EAF /* DisplayLiveSamplesUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayLiveSamplesUITests.swift; sourceTree = "<group>"; };
 		A56696111CE8B34B00BD7EAF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		A566961D1CE8B4A100BD7EAF /* SessionHandler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SessionHandler.swift; sourceTree = "<group>"; };
+		A566961D1CE8B4A100BD7EAF /* FaceTrackingHandler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FaceTrackingHandler.swift; sourceTree = "<group>"; };
 		A5A1B2CF1CEA317B00626AC5 /* DisplayLiveSamples-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "DisplayLiveSamples-Bridging-Header.h"; sourceTree = "<group>"; };
-		A5A1B2D01CEA317B00626AC5 /* DlibWrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DlibWrapper.h; sourceTree = "<group>"; };
-		A5A1B2D11CEA317B00626AC5 /* DlibWrapper.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DlibWrapper.mm; sourceTree = "<group>"; };
+		A5A1B2D01CEA317B00626AC5 /* FaceFeatureDetector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FaceFeatureDetector.h; sourceTree = "<group>"; };
+		A5A1B2D11CEA317B00626AC5 /* FaceFeatureDetector.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = FaceFeatureDetector.mm; sourceTree = "<group>"; };
 		A5A1B2D31CEA35B300626AC5 /* libdlib.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libdlib.a; path = DisplayLiveSamples/lib/libdlib.a; sourceTree = "<group>"; };
 		A5A1B2D71CEA431600626AC5 /* shape_predictor_68_face_landmarks.dat */ = {isa = PBXFileReference; lastKnownFileType = file; name = shape_predictor_68_face_landmarks.dat; path = DisplayLiveSamples/lib/shape_predictor_68_face_landmarks.dat; sourceTree = "<group>"; };
 		BEC594EBA68637602F397F1F /* Pods_DisplayLiveSamplesTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_DisplayLiveSamplesTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -136,6 +138,7 @@
 			isa = PBXGroup;
 			children = (
 				A5A1B2D71CEA431600626AC5 /* shape_predictor_68_face_landmarks.dat */,
+				8890569E230D97DE004F19E9 /* headwear1.glb */,
 				880D9CE022F1EFB20072C8D5 /* eyewear1.glb */,
 				A5A1B2D31CEA35B300626AC5 /* libdlib.a */,
 				A56695EE1CE8B34B00BD7EAF /* DisplayLiveSamples */,
@@ -160,11 +163,11 @@
 		A56695EE1CE8B34B00BD7EAF /* DisplayLiveSamples */ = {
 			isa = PBXGroup;
 			children = (
-				A5A1B2D01CEA317B00626AC5 /* DlibWrapper.h */,
-				A5A1B2D11CEA317B00626AC5 /* DlibWrapper.mm */,
+				A5A1B2D01CEA317B00626AC5 /* FaceFeatureDetector.h */,
+				A5A1B2D11CEA317B00626AC5 /* FaceFeatureDetector.mm */,
 				A56695EF1CE8B34B00BD7EAF /* AppDelegate.swift */,
 				A56695F11CE8B34B00BD7EAF /* ViewController.swift */,
-				A566961D1CE8B4A100BD7EAF /* SessionHandler.swift */,
+				A566961D1CE8B4A100BD7EAF /* FaceTrackingHandler.swift */,
 				A56695F31CE8B34B00BD7EAF /* Main.storyboard */,
 				A56695F61CE8B34B00BD7EAF /* Assets.xcassets */,
 				A56695F81CE8B34B00BD7EAF /* LaunchScreen.storyboard */,
@@ -311,6 +314,7 @@
 				A56695F71CE8B34B00BD7EAF /* Assets.xcassets in Resources */,
 				880D9CE122F1EFB20072C8D5 /* eyewear1.glb in Resources */,
 				A56695F51CE8B34B00BD7EAF /* Main.storyboard in Resources */,
+				8890569F230D97DE004F19E9 /* headwear1.glb in Resources */,
 				A5A1B2D81CEA431600626AC5 /* shape_predictor_68_face_landmarks.dat in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -423,9 +427,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A5A1B2D21CEA317B00626AC5 /* DlibWrapper.mm in Sources */,
+				A5A1B2D21CEA317B00626AC5 /* FaceFeatureDetector.mm in Sources */,
 				A56695F21CE8B34B00BD7EAF /* ViewController.swift in Sources */,
-				A566961E1CE8B4A100BD7EAF /* SessionHandler.swift in Sources */,
+				A566961E1CE8B4A100BD7EAF /* FaceTrackingHandler.swift in Sources */,
 				880D9CDC22F0E80A0072C8D5 /* OneEuroFaceFilter.c in Sources */,
 				A56695F01CE8B34B00BD7EAF /* AppDelegate.swift in Sources */,
 			);

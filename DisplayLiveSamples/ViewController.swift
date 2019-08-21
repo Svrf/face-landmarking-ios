@@ -12,7 +12,7 @@ import SceneKit
 import SvrfGLTFSceneKit
 
 class ViewController: UIViewController {
-    let sessionHandler = SessionHandler()
+    let sessionHandler = FaceTrackingHandler()
     
     @IBOutlet weak var preview: UIView!
     @IBOutlet weak var sceneView: SCNView!
@@ -31,6 +31,8 @@ class ViewController: UIViewController {
 
         let scene = SCNScene()
         sceneView.scene = scene
+        sceneView.autoenablesDefaultLighting = true
+        sceneView.alpha = 0.5
 
         let camera = SCNCamera()
         let cameraNode = SCNNode()
@@ -41,13 +43,13 @@ class ViewController: UIViewController {
         }
         cameraNode.position = SCNVector3(x: 0.0, y: 0.0, z: 1)
 
-        let light = SCNLight()
-        light.type = .omni
-        let lightNode = SCNNode()
-        lightNode.light = light
-        lightNode.position = SCNVector3(x: 1.5, y: 1.5, z: 1.5)
-
-        scene.rootNode.addChildNode(lightNode)
+//        let light = SCNLight()
+//        light.type = .omni
+//        let lightNode = SCNNode()
+//        lightNode.light = light
+//        lightNode.position = SCNVector3(x: 1.5, y: 1.5, z: 1.5)
+//
+//        scene.rootNode.addChildNode(lightNode)
         scene.rootNode.addChildNode(cameraNode)
     }
 
@@ -63,7 +65,7 @@ class ViewController: UIViewController {
         layer.frame = preview.bounds
         preview.layer.insertSublayer(layer, below: sceneView.layer)
 
-        let glasses = try! loadFaceNode("eyewear1.glb")
+        let glasses = try! loadFaceNode("headwear1.glb")
         glasses.scale = SCNVector3(3.2,3.2,3.2) // TODO why does this need to be scaled up so much?
         glasses.position = SCNVector3(0, 0, 0)
 
@@ -96,7 +98,7 @@ class ViewController: UIViewController {
         if let occluderNode = sceneNode.childNode(withName: "Occluder",
                                                   recursively: true) {
             faceFilterNode.addChildNode(occluderNode)
-            setOccluderNode(node: occluderNode)
+//            setOccluderNode(node: occluderNode)
         }
 
         if let headNode = sceneNode.childNode(withName: "Head", recursively: true) {
