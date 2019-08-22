@@ -20,6 +20,11 @@ class ViewController: UIViewController {
     @IBOutlet weak var yawWarning: UILabel!
     @IBOutlet weak var rollWarning: UILabel!
 
+    var headbandNode: SCNNode?
+    var glassesNode: SCNNode?
+    var earringsNode: SCNNode?
+    var mustacheNode: SCNNode?
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -32,7 +37,7 @@ class ViewController: UIViewController {
         let scene = SCNScene()
         sceneView.scene = scene
         sceneView.autoenablesDefaultLighting = true
-        sceneView.alpha = 0.5
+//        sceneView.alpha = 0.5
 
         let camera = SCNCamera()
         let cameraNode = SCNNode()
@@ -64,14 +69,32 @@ class ViewController: UIViewController {
         let layer = sessionHandler.layer
         layer.frame = preview.bounds
         preview.layer.insertSublayer(layer, below: sceneView.layer)
+        let refNode = SCNNode()
 
-        let model = try! loadFaceNode("headwear1.glb")
-        model.scale = SCNVector3(10,10,10)//3.2,3.2,3.2) // TODO why does this need to be scaled up so much?
+        let headwear = try! loadFaceNode("headwear1.glb")
+        headwear.scale = SCNVector3(6,6,6)//3.2,3.2,3.2) // TODO why does this need to be scaled up so much?
+        headbandNode = headwear
+        refNode.addChildNode(headwear)
+
+        let glasses = try! loadFaceNode("eyewear1.glb")
+        glasses.scale = SCNVector3(6,6,6)//3.2,3.2,3.2) // TODO why does this need to be scaled up so much?
+        glassesNode = glasses
+        refNode.addChildNode(glasses)
+
+        let earrings = try! loadFaceNode("earrings.glb")
+        earrings.scale = SCNVector3(6,6,6)//3.2,3.2,3.2) // TODO why does this need to be scaled up so much?
+        earringsNode = earrings
+        refNode.addChildNode(earrings)
+
+        let mustache = try! loadFaceNode("mustache.glb")
+        mustache.scale = SCNVector3(6,6,6)//3.2,3.2,3.2) // TODO why does this need to be scaled up so much?
+        mustacheNode = mustache
+        refNode.addChildNode(mustache)
 
 //        let cubeGeometry = SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0.0)
 //        let cubeNode = SCNNode(geometry: cubeGeometry)
 
-        sessionHandler.refNode = model
+        sessionHandler.refNode = refNode
         sceneView.scene?.rootNode.addChildNode(sessionHandler.refNode!)
 
         view.layoutIfNeeded()
@@ -83,6 +106,22 @@ class ViewController: UIViewController {
 
     @IBAction func slider2Changed(_ sender: UISlider) {
         sessionHandler.updateSlider2(sender.value)
+    }
+
+    @IBAction func headbandTapped(_ sender: UIBarButtonItem) {
+        headbandNode?.isHidden = !headbandNode!.isHidden
+    }
+
+    @IBAction func glassesTapped(_ sender: UIBarButtonItem) {
+        glassesNode?.isHidden = !glassesNode!.isHidden
+    }
+
+    @IBAction func earringsTapped(_ sender: UIBarButtonItem) {
+        earringsNode?.isHidden = !earringsNode!.isHidden
+    }
+
+    @IBAction func mustacheTapped(_ sender: UIBarButtonItem) {
+        mustacheNode?.isHidden = !mustacheNode!.isHidden
     }
 
 
@@ -97,7 +136,7 @@ class ViewController: UIViewController {
         if let occluderNode = sceneNode.childNode(withName: "Occluder",
                                                   recursively: true) {
             faceFilterNode.addChildNode(occluderNode)
-//            setOccluderNode(node: occluderNode)
+            setOccluderNode(node: occluderNode)
         }
 
         if let headNode = sceneNode.childNode(withName: "Head", recursively: true) {

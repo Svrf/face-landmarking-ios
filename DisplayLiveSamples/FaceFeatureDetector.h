@@ -26,7 +26,7 @@
 @property (assign) CGSize cameraBufferSize;
 
 @property (nonatomic, assign) double slider1Value;
-@property (assign) double slider2Value;
+@property (nonatomic, assign) double slider2Value;
 
 // Intrinsics for the camera FOV matrix
 @property (assign) double cameraFx;

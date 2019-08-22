@@ -18,10 +18,10 @@ extern "C" {
 
 static const unsigned long NUM_POINTS = (68*2) + 3;
 
-double min_cutoff = 1.0;
-double beta = 0.0;
-double d_cutoff = 1.0;
-double initial_noise_threshold = 0.5;
+    double min_cutoff = 0.785;//1.0;
+    double beta = 0.0;
+    double d_cutoff = 0.106;//1.0;
+    double initial_noise_threshold = 0.5;
 
 double prev_x[NUM_POINTS];
 double prev_dx[NUM_POINTS];

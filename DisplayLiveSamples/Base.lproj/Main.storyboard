@@ -60,6 +60,34 @@
                                         <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <nil key="highlightedColor"/>
                                     </label>
+                                    <toolbar opaque="NO" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="lPp-Qp-vmZ">
+                                        <rect key="frame" x="0.0" y="810" width="414" height="44"/>
+                                        <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
+                                        <items>
+                                            <barButtonItem style="plain" systemItem="flexibleSpace" id="NBz-Zg-doA"/>
+                                            <barButtonItem title="💂🏻‍♂️" id="lW5-Qi-RaZ">
+                                                <connections>
+                                                    <action selector="headbandTapped:" destination="BYZ-38-t0r" id="aUt-TX-mF8"/>
+                                                </connections>
+                                            </barButtonItem>
+                                            <barButtonItem title="😎" id="Ctc-99-RJU">
+                                                <connections>
+                                                    <action selector="glassesTapped:" destination="BYZ-38-t0r" id="GmJ-C9-mmK"/>
+                                                </connections>
+                                            </barButtonItem>
+                                            <barButtonItem title="👂" id="Bdm-8m-Mh2">
+                                                <connections>
+                                                    <action selector="earringsTapped:" destination="BYZ-38-t0r" id="vsS-kI-lnT"/>
+                                                </connections>
+                                            </barButtonItem>
+                                            <barButtonItem title="👨🏻" id="v3H-g0-DmA">
+                                                <connections>
+                                                    <action selector="mustacheTapped:" destination="BYZ-38-t0r" id="CAj-c1-Qek"/>
+                                                </connections>
+                                            </barButtonItem>
+                                            <barButtonItem style="plain" systemItem="flexibleSpace" id="lYB-hK-sqb"/>
+                                        </items>
+                                    </toolbar>
                                 </subviews>
                                 <color key="backgroundColor" red="0.58188301320000002" green="0.21569153669999999" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                             </view>

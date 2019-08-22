@@ -24,7 +24,7 @@ static unsigned int FACE_RECT_OVERFLOW=10;
 const static bool SMOOTH_POINTS = true; /* Filter face detection points */
 const static bool SMOOTH_PROJECTION = false; /* Filter projection points */
 const static double FRAME_ADVANCE = 0.07; /* higher = more responsive, more noise */
-const static bool DRAW_FACE_DETECTION_POINTS = true; /* Points for face and rect around face */
+const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rect around face */
 
 @interface FaceFeatureDetector ()
 
@@ -82,8 +82,14 @@ const static bool DRAW_FACE_DETECTION_POINTS = true; /* Points for face and rect
 
 - (void)setSlider1Value:(double)slider1Value {
     _slider1Value = slider1Value;
-    FACE_RECT_OVERFLOW = 5 + (unsigned int)(_slider1Value*100);
-    NSLog(@"Face rect overflow: %ul", FACE_RECT_OVERFLOW);
+//    d_cutoff = slider1Value/100;
+    NSLog(@"Set slider 1 to %0.3f", slider1Value);
+}
+
+- (void)setSlider2Value:(double)slider2Value {
+    _slider2Value = slider2Value;
+//    min_cutoff = slider2Value;
+    NSLog(@"Set slider 2 to %0.3f", slider2Value);
 }
 
 - (void)resetFrameNumber {
@@ -252,86 +258,6 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
 
 // MARK: - Head pose
 
-- (void)updateHeadPose_v2:(std::vector<dlib::point> &)shape image:(dlib::array2d<dlib::bgr_pixel> &)img width:(size_t)width height:(size_t)height
-{
-    std::vector<double> rv(3), tv(3);
-    cv::Mat rvec(rv),tvec(tv);
-    cv::Vec3d eav;
-
-    // Labelling the 3D Points derived from a 3D model of human face.
-    // You may replace these points as per your custom 3D head model if any
-    std::vector<cv::Point3f > modelPoints;
-    modelPoints.push_back(cv::Point3f(2.37427,110.322,21.7776));    // l eye (v 314)
-    modelPoints.push_back(cv::Point3f(70.0602,109.898,20.8234));    // r eye (v 0)
-    modelPoints.push_back(cv::Point3f(36.8301,78.3185,52.0345));    //nose (v 1879)
-    modelPoints.push_back(cv::Point3f(14.8498,51.0115,30.2378));    // l mouth (v 1502)
-    modelPoints.push_back(cv::Point3f(58.1825,51.0115,29.6224));    // r mouth (v 695)
-    modelPoints.push_back(cv::Point3f(-61.8886f,127.797,-89.4523f));  // l ear (v 2011)
-    modelPoints.push_back(cv::Point3f(127.603,126.9,-83.9129f));     // r ear (v 1138)
-
-    // labelling the position of corresponding feature points on the input image.
-    std::vector<cv::Point2f> srcImagePoints = {
-        cv::Point2f(shape[45].x(), shape[45].y()), // left eye
-        cv::Point2f(shape[36].x(), shape[36].y()), // right eye
-        cv::Point2f(shape[33].x(), shape[33].y()), // nose
-        cv::Point2f(shape[54].x(), shape[54].y()), // left lip corner
-        cv::Point2f(shape[48].x(), shape[48].y()), // right lip corner
-        cv::Point2f(shape[16].x(), shape[16].y()), // left ear
-        cv::Point2f(shape[0].x(), shape[0].y()), // right ear
-    };
-
-    cv::Mat ip(srcImagePoints);
-
-    cv::Mat op = cv::Mat(modelPoints);
-//    cv::Scalar m = mean(cv::Mat(modelPoints));
-
-    rvec = cv::Mat(rv);
-    double _d[9] = {1,0,0,
-        0,-1,0,
-        0,0,-1};
-    Rodrigues(cv::Mat(3,3,CV_64FC1,_d),rvec);
-    tv[0]=0;tv[1]=0;tv[2]=1;
-    tvec = cv::Mat(tv);
-
-    double _cm[9] = {
-        self.cameraFx, 0.0, self.cameraCx,
-        0.0, self.cameraFy, self.cameraCy,
-        0.0, 0.0, 1.0 };
-
-    cv::Mat camMatrix = cv::Mat(3,3,CV_64FC1, _cm);
-
-    double _dc[] = {0,0,0,0};
-    solvePnP(op,ip,camMatrix,cv::Mat(1,4,CV_64FC1,_dc),rvec,tvec,false,cv::SOLVEPNP_EPNP);
-
-    double rot[9] = {0};
-    cv::Mat rotM(3,3,CV_64FC1,rot);
-    Rodrigues(rvec,rotM);
-    double* _r = rotM.ptr<double>();
-    printf("rotation mat: \n %.3f %.3f %.3f\n%.3f %.3f %.3f\n%.3f %.3f %.3f\n",
-           _r[0],_r[1],_r[2],_r[3],_r[4],_r[5],_r[6],_r[7],_r[8]);
-
-    printf("trans vec: \n %.3f %.3f %.3f\n",tv[0],tv[1],tv[2]);
-
-    double _pm[12] = {_r[0],_r[1],_r[2],tv[0],
-        _r[3],_r[4],_r[5],tv[1],
-        _r[6],_r[7],_r[8],tv[2]};
-
-    cv::Mat tmp,tmp1,tmp2,tmp3,tmp4,tmp5;
-    cv::decomposeProjectionMatrix(cv::Mat(3,4,CV_64FC1,_pm),tmp,tmp1,tmp2,tmp3,tmp4,tmp5,eav);
-
-    self.headPoseAngle =
-    SCNVector3Make((float)(eav[0] * M_PI / 180),
-                   -(float)(eav[1] * M_PI / 180),
-                   -(float)(eav[2] * M_PI / 180) + M_PI);
-
-    printf("Face Rotation Angle:  %.5f %.5f %.5f\n",eav[0],eav[1],eav[2]);
-
-    SCNVector3 position = [self estimatePositionFromShape:shape image:img width:width height:height angle: self.headPoseAngle];
-    //    position.z = out_translation.at<double>(2);
-    self.headPosition = position;
-
-}
-
 - (void)updateHeadPose_v3:(std::vector<dlib::point> &)shape image:(dlib::array2d<dlib::bgr_pixel> &)img width:(size_t)width height:(size_t)height
 {
     double K[9] = {
@@ -398,7 +324,7 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
     };
 
     //calc pose
-    cv::solvePnP(model_points, src_image_points, cam_matrix, dist_coeffs, rotation_vec, translation_vec, false, cv::SOLVEPNP_DLS);
+    cv::solvePnP(model_points, src_image_points, cam_matrix, dist_coeffs, rotation_vec, translation_vec, false, cv::SOLVEPNP_UPNP);
 
     //calc euler angle
 
@@ -418,6 +344,8 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
                    M_PI + ((10 + euler_angle.at<double>(1)) * M_PI / 180),
                    -(-5 + euler_angle.at<double>(2)) * M_PI / 180);
 
+    printf("Face Rotation Angle:  %.5f %.5f %.5f\n",self.headPoseAngle.x, self.headPoseAngle.y, self.headPoseAngle.z);
+
     // Get the hacked up position vector
     SCNVector3 position = [self estimatePositionFromShape:shape image:img width:width height:height angle: self.headPoseAngle];
 //    double newZ = (out_translation.at<double>(2)+1);
@@ -425,154 +353,6 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
 //    position.z = newZ;
 
     self.headPosition = position;
-}
-
-- (void)updateHeadPose_v1:(std::vector<dlib::point> &)shape image:(dlib::array2d<dlib::bgr_pixel> &)img width:(size_t)width height:(size_t)height
-{
-    // ------------------------------------------
-    // TODO: Move this to an initialization step
-
-    //Intrisics can be calculated using opencv sample code under opencv/sources/samples/cpp/tutorial_code/calib3d
-    //Normally, you can also apprximate fx and fy by image width, cx by half image width, cy by half image height instead
-//    double K[9] = { 6.5308391993466671e+002, 0.0, 3.1950000000000000e+002, 0.0, 6.5308391993466671e+002, 2.3950000000000000e+002, 0.0, 0.0, 1.0 };
-    /*
-     Camera Matrix:
-     [ fx,  0, cx
-        0, fy, cy
-        0,  0,  1]
-
-     iphone X: FX: 1435.0 FY: 1568.0573 CX: 960.0 CY: 540.0
-
-     Dist Coefficients:
-     [ k1, k2, p1, p2 [, k3 [, k4, k5, k6]]] (4, 5, or 8 elements)
-     */
-
-    double K[9] = {
-        self.cameraFx, 0.0, self.cameraCx,
-        0.0, self.cameraFy, self.cameraCy,
-        0.0, 0.0, 1.0 };
-
-/*
-    double K[9] = {
-        1.4551780026980582e+03, 0., 9.5902575796350970e+02, 0.,
-        1.4576596237871390e+03, 5.4933833052386569e+02, 0., 0., 1.
-    };*/
-
-    /* Calibrated parameters!!!
-     iPhone X:
-    double D[5] = { 1.7479705014455854e-01, -7.3389958871609140e-01,
-        -1.1315715905407971e-03, -2.3005306869031618e-03,
-        8.9658222837817847e-01 };
-     */
-
-    /* iPhone 7: */
-    double D[5] = { 1.6306670740348619e-01, -6.9679269326948057e-01,
-        -1.1975503089872291e-04, -3.7197654044547885e-03,
-        7.6833717412969704e-01 };
-
-    //fill in cam intrinsics and distortion coefficients
-    cv::Mat cam_matrix = cv::Mat(3, 3, CV_64FC1, K);
-    cv::Mat dist_coeffs = cv::Mat(5, 1, CV_64FC1, D);
-
-    //2D ref points(image coordinates), referenced from detected facial feature
-    std::vector<cv::Point2d> image_pts;
-    std::vector<cv::Point2d> p3p_image_pts;
-    std::vector<cv::Point3d> p3p_object_pts;
-
-    //result
-    cv::Mat rotation_vec;                           //3 x 1
-    cv::Mat rotation_mat;                           //3 x 3 R
-    cv::Mat translation_vec;                        //3 x 1 T
-    cv::Mat pose_mat = cv::Mat(3, 4, CV_64FC1);     //3 x 4 R | T
-    cv::Mat euler_angle = cv::Mat(3, 1, CV_64FC1);
-
-    //temp buf for decomposeProjectionMatrix()
-    cv::Mat out_intrinsics = cv::Mat(3, 3, CV_64FC1);
-    cv::Mat out_rotation = cv::Mat(3, 3, CV_64FC1);
-    cv::Mat out_translation = cv::Mat(3, 1, CV_64FC1);
-
-    // -----------------------------------------------------------------
-
-    //fill in 2D ref points, annotations follow https://ibug.doc.ic.ac.uk/resources/300-W/
-    image_pts.push_back(cv::Point2d(shape[17].x(), shape[17].y())); //#17 left brow left corner
-    image_pts.push_back(cv::Point2d(shape[21].x(), shape[21].y())); //#21 left brow right corner
-    image_pts.push_back(cv::Point2d(shape[22].x(), shape[22].y())); //#22 right brow left corner
-    image_pts.push_back(cv::Point2d(shape[26].x(), shape[26].y())); //#26 right brow right corner
-    image_pts.push_back(cv::Point2d(shape[36].x(), shape[36].y())); //#36 left eye left corner
-    image_pts.push_back(cv::Point2d(shape[39].x(), shape[39].y())); //#39 left eye right corner
-    image_pts.push_back(cv::Point2d(shape[42].x(), shape[42].y())); //#42 right eye left corner
-    image_pts.push_back(cv::Point2d(shape[45].x(), shape[45].y())); //#45 right eye right corner
-    image_pts.push_back(cv::Point2d(shape[31].x(), shape[31].y())); //#31 nose left corner
-    image_pts.push_back(cv::Point2d(shape[35].x(), shape[35].y())); //#35 nose right corner
-    image_pts.push_back(cv::Point2d(shape[48].x(), shape[48].y())); //#48 mouth left corner
-    image_pts.push_back(cv::Point2d(shape[54].x(), shape[54].y())); //#54 mouth right corner
-    image_pts.push_back(cv::Point2d(shape[57].x(), shape[57].y())); //#57 mouth central bottom corner
-    image_pts.push_back(cv::Point2d(shape[8].x(), shape[8].y()));   //#8 chin corner
-
-    //calc pose
-    cv::solvePnP(object_pts, image_pts, cam_matrix, dist_coeffs, rotation_vec, translation_vec, false, cv::SOLVEPNP_DLS);
-
-//    std::vector<cv::Point3d> reprojectsrc;
-//    std::vector<cv::Point2d> reprojectdst;
-//    reprojectdst.resize(1);
-//    reprojectsrc.push_back(cv::Point3d(0.0, 0.0, 0.0));
-//    cv::projectPoints(reprojectsrc, rotation_vec, translation_vec, cam_matrix, dist_coeffs, reprojectdst);
-
-    //calc euler angle
-
-    // Convert rotation vector into rotation matrix
-    cv::Rodrigues(rotation_vec, rotation_mat);
-
-    // Combine rotation vector and translation vector into pose matrix
-    cv::hconcat(rotation_mat, translation_vec, pose_mat);
-
-    // Extract translation and euler angle from pose matrix
-    cv::decomposeProjectionMatrix(pose_mat, out_intrinsics, out_rotation, out_translation, cv::noArray(), cv::noArray(), cv::noArray(), euler_angle);
-/*
-    NSLog(@"Camera matrix:\n[%0.1f, %0.1f, %0.1f,\n%0.1f, %0.1f, %0.1f,\n%0.1f, %0.1f, %0.1f]",
-          out_intrinsics.at<double>(0),
-          out_intrinsics.at<double>(1),
-          out_intrinsics.at<double>(2),
-          out_intrinsics.at<double>(3),
-          out_intrinsics.at<double>(4),
-          out_intrinsics.at<double>(5),
-          out_intrinsics.at<double>(6),
-          out_intrinsics.at<double>(7),
-          out_intrinsics.at<double>(8)
-          );
-*/
-
-    // Correct for front camera mirroring
-
-    if (SMOOTH_PROJECTION) {
-        double smooth_euler_0 = filter(euler_angle.at<double>(0), frame_number, (2*68)+0) * M_PI/180;
-        double smooth_euler_1 = filter(euler_angle.at<double>(1), frame_number, (2*68)+1) * M_PI/180;
-        double smooth_euler_2 = filter(fmodf(euler_angle.at<double>(2) + 180, 360), frame_number, (2*68)+2) * M_PI/180;
-        self.headPoseAngle = SCNVector3Make(M_PI + smooth_euler_0, M_PI + smooth_euler_1, -smooth_euler_2 - M_PI);//euler_angle.at<double>(2) * M_PI / 180);
-    } else {
-        self.headPoseAngle =
-        SCNVector3Make(M_PI + (euler_angle.at<double>(0) * M_PI / 180),
-                       M_PI + (euler_angle.at<double>(1) * M_PI / 180),
-                       -euler_angle.at<double>(2) * M_PI / 180);
-    }
-
-    // Get the hacked up position vector
-    SCNVector3 position = [self estimatePositionFromShape:shape image:img width:width height:height angle: self.headPoseAngle];
-//    position.z = out_translation.at<double>(2);
-    self.headPosition = position;
-
-    NSLog(@"R: %0.2f, %0.2f, %0.2f, T: %0.2f, %0.2f, %0.2f, T2: %0.2f, %0.2f, %0.2f, T3: %0.2f, %0.2f, %0.2f",
-          euler_angle.at<double>(0),
-          euler_angle.at<double>(1),
-          euler_angle.at<double>(2),
-          out_translation.at<double>(0),
-          out_translation.at<double>(1),
-          out_translation.at<double>(2),
-          translation_vec.at<double>(0),
-          translation_vec.at<double>(1),
-          translation_vec.at<double>(2),
-          position.x, position.y, position.z
-          );
 }
 
 /* this is a total hack just to see if I can get anywhere close
@@ -608,8 +388,8 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
 //    x = shape[28].x();
 //    y = shape[28].y();
 
-    double divisor = self.slider1Value * 3; // 1.5
-    double downscale_factor = self.slider2Value * 1000; // 722
+    double divisor = self.slider1Value * 3; // 1.73
+    double downscale_factor =self.slider2Value * 1000; // 546
 
     NSLog(@"divisor: %0.2f / downscale factor: %0.1f", divisor, downscale_factor);
     double z = ((double)width/divisor) - abs((max_x - min_x)/cosf(angle.y));
