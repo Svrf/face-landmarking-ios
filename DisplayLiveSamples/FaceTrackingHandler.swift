@@ -13,7 +13,7 @@ class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelega
                 let height = maxBox.y - minBox.y
                 let depth = maxBox.z - minBox.z
                 // These constants are specific to our particular occluder.
-                let nose = SCNVector3Make((maxBox.x + minBox.x)/2, ((maxBox.y + minBox.y)/2) + height*0.15, maxBox.z - depth*0.05)
+                let nose = SCNVector3Make(0, ((maxBox.y + minBox.y)/2) + height*0.13, maxBox.z - depth*0.08)
                 print("Nose from bounding box: \(nose)")
                 refNode?.pivot = SCNMatrix4MakeTranslation(nose.x*occluderNode.scale.z,
                                                            nose.y*occluderNode.scale.z,
