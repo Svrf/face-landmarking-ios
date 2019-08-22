@@ -104,7 +104,7 @@ const static bool DRAW_FACE_DETECTION_POINTS = true; /* Points for face and rect
     *width = CVPixelBufferGetWidth(imageBuffer)+8; //// TODO: I had to add 8 here, y tho
     *height = CVPixelBufferGetHeight(imageBuffer);
     char *baseBuffer = (char *)CVPixelBufferGetBaseAddress(imageBuffer);
-    _cameraBufferSize = CGSizeMake(*width, *height);
+    _cameraBufferSize = CGSizeMake(*width - 8, *height);
 
     // set_size expects rows, cols format
     img.set_size(*height, *width);
@@ -602,6 +602,7 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
 
     if (DRAW_FACE_DETECTION_POINTS) {
         draw_solid_circle(img, dlib::point(x, y), 6, dlib::rgb_pixel(255, 0, 0));
+        draw_solid_circle(img, dlib::point(shape[33].x(), shape[33].y()), 6, dlib::rgb_pixel(0, 0, 255));
     }
 
 //    x = shape[28].x();
@@ -618,7 +619,7 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
     NSLog(@"I think Z is: %0.2f", z);
 
     // Return tip of nose
-    return SCNVector3Make(shape[33].x(), shape[33].y(), z);
+    return SCNVector3Make(shape[30].x(), shape[30].y(), z);
 }
 
 @end

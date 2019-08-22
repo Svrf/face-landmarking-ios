@@ -38,7 +38,7 @@ class ViewController: UIViewController {
         let cameraNode = SCNNode()
         cameraNode.camera = camera
         if let fov = sessionHandler.hfov {
-            camera.fieldOfView = CGFloat(fov/2)
+            camera.fieldOfView = CGFloat(fov)
             camera.projectionDirection = .horizontal
         }
         cameraNode.position = SCNVector3(x: 0.0, y: 0.0, z: 1)
@@ -65,14 +65,13 @@ class ViewController: UIViewController {
         layer.frame = preview.bounds
         preview.layer.insertSublayer(layer, below: sceneView.layer)
 
-        let glasses = try! loadFaceNode("headwear1.glb")
-        glasses.scale = SCNVector3(3.2,3.2,3.2) // TODO why does this need to be scaled up so much?
-        glasses.position = SCNVector3(0, 0, 0)
+        let model = try! loadFaceNode("headwear1.glb")
+        model.scale = SCNVector3(10,10,10)//3.2,3.2,3.2) // TODO why does this need to be scaled up so much?
 
-//        let cubeGeometry = SCNBox(width: 1.0, height: 1.0, length: 1.0, chamferRadius: 0.0)
+//        let cubeGeometry = SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0.0)
 //        let cubeNode = SCNNode(geometry: cubeGeometry)
 
-        sessionHandler.refNode = glasses
+        sessionHandler.refNode = model
         sceneView.scene?.rootNode.addChildNode(sessionHandler.refNode!)
 
         view.layoutIfNeeded()
