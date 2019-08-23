@@ -10,10 +10,11 @@ class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelega
 
                 // Get bounding rectangle and add insets to find the nose tip, align model to it for handling positioning
                 let (minBox, maxBox) = occluderNode.boundingBox
+                let width = maxBox.x - minBox.x
                 let height = maxBox.y - minBox.y
                 let depth = maxBox.z - minBox.z
                 // These constants are specific to our particular occluder.
-                let nose = SCNVector3Make((maxBox.x + minBox.x)/2, ((maxBox.y + minBox.y)/2) - height*0.1, maxBox.z + depth*1.2)
+                let nose = SCNVector3Make((maxBox.x + minBox.x)/2 - width*0.1, ((maxBox.y + minBox.y)/2) - height*0.1, maxBox.z + depth*1.6)
                 print("Nose from bounding box: \(nose)")
                 refNode?.pivot = SCNMatrix4MakeTranslation(nose.x*occluderNode.scale.z,
                                                            nose.y*occluderNode.scale.z,

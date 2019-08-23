@@ -24,7 +24,7 @@ static unsigned int FACE_RECT_OVERFLOW=10;
 const static bool SMOOTH_POINTS = true; /* Filter face detection points */
 const static bool SMOOTH_PROJECTION = false; /* Filter projection points */
 const static double FRAME_ADVANCE = 0.07; /* higher = more responsive, more noise */
-const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rect around face */
+const static bool DRAW_FACE_DETECTION_POINTS = true; /* Points for face and rect around face */
 
 @interface FaceFeatureDetector ()
 
@@ -388,8 +388,8 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
 //    x = shape[28].x();
 //    y = shape[28].y();
 
-    double divisor = self.slider1Value * 3; // 1.73
-    double downscale_factor =self.slider2Value * 1000; // 546
+    double divisor = 1.03;//self.slider1Value * 3; // 1.73
+    double downscale_factor =1000; //self.slider2Value * 1000; // 546
 
     NSLog(@"divisor: %0.2f / downscale factor: %0.1f", divisor, downscale_factor);
     double z = ((double)width/divisor) - abs((max_x - min_x)/cosf(angle.y));

@@ -24,6 +24,7 @@ class ViewController: UIViewController {
     var glassesNode: SCNNode?
     var earringsNode: SCNNode?
     var mustacheNode: SCNNode?
+    var camera: SCNCamera?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -42,10 +43,12 @@ class ViewController: UIViewController {
         let camera = SCNCamera()
         let cameraNode = SCNNode()
         cameraNode.camera = camera
-        if let fov = sessionHandler.hfov {
-            camera.fieldOfView = CGFloat(fov)
-            camera.projectionDirection = .horizontal
-        }
+        self.camera = camera
+        camera.fieldOfView = 55
+//        if let fov = sessionHandler.hfov {
+//            camera.fieldOfView = CGFloat(fov/3)
+//            camera.projectionDirection = .horizontal
+//        }
         cameraNode.position = SCNVector3(x: 0.0, y: 0.0, z: 1)
 
 //        let light = SCNLight()
@@ -106,6 +109,11 @@ class ViewController: UIViewController {
 
     @IBAction func slider2Changed(_ sender: UISlider) {
         sessionHandler.updateSlider2(sender.value)
+    }
+
+    @IBAction func slider3Changed(_ sender: UISlider) {
+        camera?.fieldOfView = CGFloat(sender.value*180)
+        print("Field of view: \(String(describing: camera?.fieldOfView))")
     }
 
     @IBAction func headbandTapped(_ sender: UIBarButtonItem) {
