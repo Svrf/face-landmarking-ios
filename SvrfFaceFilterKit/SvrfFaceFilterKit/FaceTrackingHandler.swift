@@ -1,9 +1,11 @@
 
+
+import SvrfFaceFilterKitPrivate
 import AVFoundation
 import SceneKit
 
-class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate {
-    var refNode: SCNNode? {
+public class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate {
+    public var refNode: SCNNode? {
         didSet {
             if let occluderNode = refNode?.childNode(withName: "Occluder",
                                                       recursively: true) {
@@ -22,29 +24,29 @@ class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelega
             }
        }
     }
-    var scnView: SCNView?
+    public var scnView: SCNView?
 
-    var session = AVCaptureSession()
-    var hfov: Float?
-    var vfov: Float?
-    let layer = AVSampleBufferDisplayLayer()
+    public var session = AVCaptureSession()
+    public var hfov: Float?
+    public var vfov: Float?
+    public let layer = AVSampleBufferDisplayLayer()
     let sampleQueue = DispatchQueue(label: "com.svrf.sampleQueue", attributes: [])
     let faceQueue = DispatchQueue(label: "com.svrf.faceQueue", attributes: [])
     let detector = FaceFeatureDetector()
 
-    var yawWarning: UILabel?
-    var rollWarning: UILabel?
+    public var yawWarning: UILabel?
+    public var rollWarning: UILabel?
     
     var currentMetadata: [AnyObject]
 
     var metadataOutput: AVCaptureMetadataOutput?
     
-    override init() {
+    override public init() {
         currentMetadata = []
         super.init()
     }
     
-    func openSession() {
+    public func openSession() {
         let device = AVCaptureDevice.devices(for: AVMediaType.video)
             .map { $0 }
             .filter { $0.position == .front}
@@ -62,7 +64,7 @@ class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         let format = device.activeFormat;
 
         let fDesc = format.formatDescription;
-        let dim = CMVideoFormatDescriptionGetPresentationDimensions(fDesc, true, true)
+        let dim = CMVideoFormatDescriptionGetPresentationDimensions(fDesc, usePixelAspectRatio: true, useCleanAperture: true)
 
         let cx = Float(dim.width) / 2.0
         let cy = Float(dim.height) / 2.0
@@ -112,18 +114,18 @@ class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         session.startRunning()
     }
 
-    func updateSlider1(_ newValue: Float) {
+    public func updateSlider1(_ newValue: Float) {
         detector?.slider1Value = Double(newValue)
     }
 
-    func updateSlider2(_ newValue: Float) {
+    public func updateSlider2(_ newValue: Float) {
         detector?.slider2Value = Double(newValue)
     }
 
     // MARK: AVCaptureVideoDataOutputSampleBufferDelegate
-    func captureOutput(_ output: AVCaptureOutput,
-                       didOutput sampleBuffer: CMSampleBuffer,
-                       from connection: AVCaptureConnection) {
+    public func captureOutput(_ output: AVCaptureOutput,
+                              didOutput sampleBuffer: CMSampleBuffer,
+                              from connection: AVCaptureConnection) {
 
         if !currentMetadata.isEmpty {
             var yawMetadata:CGFloat?
@@ -165,7 +167,7 @@ class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelega
                     // TODO: Use these as references to de-noise the data
                     if let roll = rollMetadata {
                         let adjustedRoll = (Float(roll)*Float.pi/180) - Float.pi/2
-                        let rollDiff = min(fabs(adjustedRoll - angle.z), fabs(adjustedRoll - angle.z - 2*Float.pi))
+                        let rollDiff = min(abs(adjustedRoll - angle.z), abs(adjustedRoll - angle.z - 2*Float.pi))
                         if rollDiff > Float.pi/2 {
                             self.rollWarning?.isHidden = false
                             self.rollWarning?.text = String(format:"Roll off: %0.2f", rollDiff)
@@ -176,7 +178,7 @@ class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelega
                     }
                     if let yaw = yawMetadata {
                         let adjustedYaw = -(Float(yaw)*Float.pi/180) + Float.pi
-                        let yawDiff = min(fabs(adjustedYaw - angle.y), fabs(adjustedYaw - angle.y + 2*Float.pi))
+                        let yawDiff = min(abs(adjustedYaw - angle.y), abs(adjustedYaw - angle.y + 2*Float.pi))
                         if yawDiff > Float.pi/3 {
                             self.yawWarning?.isHidden = false
                             self.yawWarning?.text = String(format:"Yaw off: %0.2f", yawDiff)
@@ -215,13 +217,13 @@ class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelega
         layer.enqueue(sampleBuffer)
     }
     
-    func captureOutput(_ output: AVCaptureOutput, didDrop sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+    public func captureOutput(_ output: AVCaptureOutput, didDrop sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         print("DidDropSampleBuffer")
     }
     
     // MARK: AVCaptureMetadataOutputObjectsDelegate
     
-    func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
+    public func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
         currentMetadata = metadataObjects as [AnyObject]
     }
 

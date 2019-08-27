@@ -17,12 +17,10 @@
 #include <dlib/image_processing/frontal_face_detector.h>
 
 #include "OneEuroFaceFilter.h"
-#include "DisplayLiveSamples-Bridging-Header.h"
 
 // How much larger to expand the discovered face rectangle
 static unsigned int FACE_RECT_OVERFLOW=10;
 const static bool SMOOTH_POINTS = true; /* Filter face detection points */
-const static bool SMOOTH_PROJECTION = false; /* Filter projection points */
 const static double FRAME_ADVANCE = 0.10; /* higher = more responsive, more noise */
 const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rect around face */
 
@@ -71,7 +69,11 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
 }
 
 - (void)prepare {
-    NSString *modelFileName = [[NSBundle mainBundle] pathForResource:@"shape_predictor_68_face_landmarks" ofType:@"dat"];
+    NSString *modelFileName = [[NSBundle bundleForClass:[self class]] pathForResource:@"shape_predictor_68_face_landmarks" ofType:@"dat"];
+    if (!modelFileName) {
+        NSLog(@"Face landmarks data file not found!");
+    }
+
     std::string modelFileNameCString = [modelFileName UTF8String];
     
     dlib::deserialize(modelFileNameCString) >> sp;

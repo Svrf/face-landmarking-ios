@@ -1,0 +1,6 @@
+
+module SvrfFaceFilterKitPrivate {
+    header "FaceFeatureDetector.h"
+
+    export *
+}

@@ -10,6 +10,7 @@ import UIKit
 import AVFoundation
 import SceneKit
 import SvrfGLTFSceneKit
+import SvrfFaceFilterKit
 
 class ViewController: UIViewController {
     let sessionHandler = FaceTrackingHandler()
@@ -44,7 +45,9 @@ class ViewController: UIViewController {
         let cameraNode = SCNNode()
         cameraNode.camera = camera
         self.camera = camera
-        camera.fieldOfView = 55
+        // iPhone 7: 55
+        // iPhone X: 65
+        camera.fieldOfView = 65
 //        if let fov = sessionHandler.hfov {
 //            camera.fieldOfView = CGFloat(fov/3)
 //            camera.projectionDirection = .horizontal

@@ -6,7 +6,6 @@ target 'DisplayLiveSamples' do
   use_frameworks!
 
   # Pods for DisplayLiveSamples
-  pod 'OpenCV'
   pod 'SvrfGLTFSceneKit'
 
   target 'DisplayLiveSamplesTests' do
