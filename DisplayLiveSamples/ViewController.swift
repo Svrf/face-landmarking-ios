@@ -47,7 +47,7 @@ class ViewController: UIViewController {
         self.camera = camera
         // iPhone 7: 55
         // iPhone X: 65
-        camera.fieldOfView = 65
+        camera.fieldOfView = 55
 //        if let fov = sessionHandler.hfov {
 //            camera.fieldOfView = CGFloat(fov/3)
 //            camera.projectionDirection = .horizontal
