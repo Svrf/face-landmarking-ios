@@ -39,7 +39,7 @@ double filter(double x, double t, unsigned int index) {
     // Reset initial values
     if (t == 0.0) {
         prev_t[index] = t;
-        prev_dx[index] = 0;
+        prev_dx[index] = x;
         prev_x[index] = x;
     }
 
