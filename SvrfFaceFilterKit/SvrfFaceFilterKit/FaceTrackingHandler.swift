@@ -5,25 +5,7 @@ import AVFoundation
 import SceneKit
 
 public class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureMetadataOutputObjectsDelegate {
-    public var refNode: SCNNode? {
-        didSet {
-            if let occluderNode = refNode?.childNode(withName: "Occluder",
-                                                      recursively: true) {
-
-                // Get bounding rectangle and add insets to find the nose tip, align model to it for handling positioning
-                let (minBox, maxBox) = occluderNode.boundingBox
-                let width = maxBox.x - minBox.x
-                let height = maxBox.y - minBox.y
-                let depth = maxBox.z - minBox.z
-                // These constants are specific to our particular occluder.
-                let nose = SCNVector3Make((maxBox.x + minBox.x)/2 - width*0.1, ((maxBox.y + minBox.y)/2) - height*0.1, maxBox.z + depth*1.7)
-                print("Nose from bounding box: \(nose)")
-                refNode?.pivot = SCNMatrix4MakeTranslation(nose.x*occluderNode.scale.z,
-                                                           nose.y*occluderNode.scale.z,
-                                                           nose.z*occluderNode.scale.z)
-            }
-       }
-    }
+    public var refNode: SCNNode?
     public var scnView: SCNView?
 
     public var session = AVCaptureSession()
@@ -47,11 +29,11 @@ public class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBuffe
     }
     
     public func openSession() {
-        let device = AVCaptureDevice.devices(for: AVMediaType.video)
-            .map { $0 }
-            .filter { $0.position == .front}
-            .first!
-        
+        let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera],
+                                                                mediaType: .video,
+                                                                position: .front)
+        let device = discoverySession.devices.first!
+
         let input = try! AVCaptureDeviceInput(device: device)
         
         let output = AVCaptureVideoDataOutput()
@@ -84,7 +66,8 @@ public class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBuffe
         // TODO: Pass these through Session / dlib helper
 
         session.beginConfiguration()
-        
+        session.sessionPreset = AVCaptureSession.Preset.hd1280x720
+
         if session.canAddInput(input) {
             session.addInput(input)
         }
@@ -99,7 +82,7 @@ public class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBuffe
             session.addOutput(metaOutput)
         }
         metadataOutput = metaOutput
-        
+
         session.commitConfiguration()
         
         let settings: [AnyHashable: Any] = [kCVPixelBufferPixelFormatTypeKey as AnyHashable: Int(kCVPixelFormatType_32BGRA)]
@@ -112,6 +95,26 @@ public class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBuffe
         detector?.prepare()
         
         session.startRunning()
+    }
+
+    public func calibrateNodes() {
+        if let occluderNode = refNode?.childNode(withName: "Occluder",
+                                                 recursively: true) {
+
+            // Get bounding rectangle and add insets to find the nose tip, align model to it for handling positioning
+            let (minBox, maxBox) = occluderNode.boundingBox
+            let width = maxBox.x - minBox.x
+            let height = maxBox.y - minBox.y
+            let depth = maxBox.z - minBox.z
+            // These constants are specific to our particular occluder.
+            let nose = SCNVector3Make((maxBox.x + minBox.x)/2 - width*0.15,
+                                      ((maxBox.y + minBox.y)/2) + height*0.15,
+                                      maxBox.z + depth*1.9)
+            print("Nose from bounding box: \(nose)")
+            refNode?.pivot = SCNMatrix4MakeTranslation(nose.x*occluderNode.scale.z,
+                                                       nose.y*occluderNode.scale.z,
+                                                       nose.z*occluderNode.scale.z)
+        }
     }
 
     public func updateSlider1(_ newValue: Float) {
@@ -164,7 +167,6 @@ public class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBuffe
                 DispatchQueue.main.async { 
                     self.refNode?.isHidden = false
 //                    var validAngle = true
-                    // TODO: Use these as references to de-noise the data
                     if let roll = rollMetadata {
                         let adjustedRoll = (Float(roll)*Float.pi/180) - Float.pi/2
                         let rollDiff = min(abs(adjustedRoll - angle.z), abs(adjustedRoll - angle.z - 2*Float.pi))
@@ -202,7 +204,7 @@ public class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBuffe
 //                    let yCenter = sin(Float.pi/2 - angle.y)*sphereRadius
 //                    let zCenter = cos(Float.pi/2 - angle.z)*sphereRadius
 //                    let centerPoint = SCNVector3Make(noseTip.x + xCenter, noseTip.y + yCenter, noseTip.z + zCenter)
-                    self.refNode?.position = noseTip //self.scnView!.unprojectPoint(scaledPosition)
+                    self.refNode?.position = noseTip
                     print("Position: \(position) - unprojected: \(self.refNode!.position)")
                 }
             } else {

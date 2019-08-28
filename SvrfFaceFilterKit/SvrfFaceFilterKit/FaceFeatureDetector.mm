@@ -1,10 +1,3 @@
-//
-//  DlibWrapper.m
-//  DisplayLiveSamples
-//
-//  Created by Luis Reisewitz on 16.05.16.
-//  Copyright © 2016 ZweiGraf. All rights reserved.
-//
 
 #import "FaceFeatureDetector.h"
 #import <UIKit/UIKit.h>
@@ -17,6 +10,12 @@
 #include <dlib/image_processing/frontal_face_detector.h>
 
 #include "OneEuroFaceFilter.h"
+
+//#ifdef DEBUG
+    #define debugLog(s, ...) NSLog(s, ##__VA_ARGS__)
+//#else
+//    #define debugLog(s, ...)
+//#endif
 
 // How much larger to expand the discovered face rectangle
 static unsigned int FACE_RECT_OVERFLOW=10;
@@ -40,6 +39,7 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
 
     // Counter for low pass filter
     double frame_number;
+    NSTimeInterval last_frame_epoch;
 }
 
 - (instancetype)init {
@@ -48,6 +48,7 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
         _prepared = NO;
         detector = dlib::get_frontal_face_detector();
         frame_number = 0;
+        last_frame_epoch = 0;
 
         //fill in 3D ref points(world coordinates), model referenced from http://aifi.isr.uc.pt/Downloads/OpenGL/glAnthropometric3DModel.cpp
         object_pts.push_back(cv::Point3d(6.825897, 6.760612, 4.402142));     //#33 left brow left corner
@@ -71,7 +72,7 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
 - (void)prepare {
     NSString *modelFileName = [[NSBundle bundleForClass:[self class]] pathForResource:@"shape_predictor_68_face_landmarks" ofType:@"dat"];
     if (!modelFileName) {
-        NSLog(@"Face landmarks data file not found!");
+        debugLog(@"Face landmarks data file not found!");
     }
 
     std::string modelFileNameCString = [modelFileName UTF8String];
@@ -85,13 +86,13 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
 - (void)setSlider1Value:(double)slider1Value {
     _slider1Value = slider1Value;
 //    d_cutoff = slider1Value/100;
-    NSLog(@"Set slider 1 to %0.3f", slider1Value);
+    debugLog(@"Set slider 1 to %0.3f", slider1Value);
 }
 
 - (void)setSlider2Value:(double)slider2Value {
     _slider2Value = slider2Value;
 //    min_cutoff = slider2Value;
-    NSLog(@"Set slider 2 to %0.3f", slider2Value);
+    debugLog(@"Set slider 2 to %0.3f", slider2Value);
 }
 
 - (void)resetFrameNumber {
@@ -109,10 +110,10 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
 {
     CVPixelBufferLockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
 
-    *width = CVPixelBufferGetWidth(imageBuffer)+8; //// TODO: I had to add 8 here, y tho
+    *width = CVPixelBufferGetWidth(imageBuffer); //// TODO: I had to add 8 here, y tho
     *height = CVPixelBufferGetHeight(imageBuffer);
     char *baseBuffer = (char *)CVPixelBufferGetBaseAddress(imageBuffer);
-    _cameraBufferSize = CGSizeMake(*width - 8, *height);
+    _cameraBufferSize = CGSizeMake(*width, *height);
 
     // set_size expects rows, cols format
     img.set_size(*height, *width);
@@ -166,7 +167,6 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
 }
 
 - (void)doWorkOnSampleBuffer:(CMSampleBufferRef)sampleBuffer inRects:(NSArray<NSValue *> *)rects {
-    
     if (!self.prepared) {
         [self prepare];
     }
@@ -182,6 +182,8 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
     std::vector<dlib::rectangle> convertedRectangles = [FaceFeatureDetector convertCGRectValueArray:rects];
 
 //    std::vector<dlib::rectangle> faces = detector(img);
+
+    // TODO: Choose largest rectangle, not first rectangle
 
     // for the first detected face
     if (convertedRectangles.size() > 0 && convertedRectangles[0].left() > 0 && convertedRectangles[0].right() < width-1) {
@@ -213,16 +215,17 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
         self.headPosition = SCNVector3Zero;
     }
 
-    // Use this to calibrate Jesse's wtf hack / TODO remove this (See above TODO)
-    dlib::rectangle testRect(0,0,100,100);
-    fill_rect(img, testRect, dlib::rgb_pixel(255, 0, 0));
-
     // lets put everything back where it belongs
     CVPixelBufferLockBaseAddress(imageBuffer, 0);
 
     [self populateSampleBuffer:imageBuffer withImageArray:img];
 
     frame_number += FRAME_ADVANCE;
+    NSTimeInterval newTime = NSDate.timeIntervalSinceReferenceDate;
+    if (last_frame_epoch > 0) {
+        debugLog(@"Elapsed time: %0.1fms", (newTime - last_frame_epoch)*1000);
+    }
+    last_frame_epoch = newTime;
 }
 
 dlib::rgb_pixel color_for_feature(unsigned long index) {
@@ -339,19 +342,19 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
     // Extract translation and euler angle from pose matrix
     cv::decomposeProjectionMatrix(pose_mat, out_intrinsics, out_rotation, out_translation, cv::noArray(), cv::noArray(), cv::noArray(), euler_angle);
 
-    // Correct for front camera mirroring
+    // Correct for front camera mirroring, + magic number offsets
 
     self.headPoseAngle =
     SCNVector3Make(M_PI + ((15 + euler_angle.at<double>(0)) * M_PI / 180),
-                   M_PI + ((15 + euler_angle.at<double>(1)) * M_PI / 180),
-                   -(-3 + euler_angle.at<double>(2)) * M_PI / 180);
+                   M_PI + ((22 + euler_angle.at<double>(1)) * M_PI / 180),
+                   -(euler_angle.at<double>(2)) * M_PI / 180);
 
-    printf("Face Rotation Angle:  %.5f %.5f %.5f\n",self.headPoseAngle.x, self.headPoseAngle.y, self.headPoseAngle.z);
+    debugLog(@"Face Rotation Angle:  %.5f %.5f %.5f\n",self.headPoseAngle.x, self.headPoseAngle.y*2, self.headPoseAngle.z);
 
     // Get the hacked up position vector
     SCNVector3 position = [self estimatePositionFromShape:shape image:img width:width height:height angle: self.headPoseAngle];
 //    double newZ = (out_translation.at<double>(2)+1);
-//    NSLog(@"%%%% Z: %0.2f vs %0.2f", newZ, position.z);
+//    debugLog(@"%%%% Z: %0.2f vs %0.2f", newZ, position.z);
 //    position.z = newZ;
 
     self.headPosition = position;
@@ -387,18 +390,14 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
         draw_solid_circle(img, dlib::point(shape[33].x(), shape[33].y()), 6, dlib::rgb_pixel(0, 0, 255));
     }
 
-//    x = shape[28].x();
-//    y = shape[28].y();
+    double divisor = 123; // self.slider1Value * 3; // 1.03
+    double downscale_factor = 546; //self.slider2Value * 1000; // 1000
 
-    double divisor = 1.03;//self.slider1Value * 3; // 1.73
-    double downscale_factor =1000; //self.slider2Value * 1000; // 546
-
-    NSLog(@"divisor: %0.2f / downscale factor: %0.1f", divisor, downscale_factor);
+    debugLog(@"divisor: %0.2f / downscale factor: %0.1f", divisor, downscale_factor);
     double z = ((double)width/divisor) - abs((max_x - min_x)/cosf(angle.y));
-//    double z = ((double)width/divisor) - (max_x - min_x);
-    NSLog(@"z: %0.1f / y angle: %0.2f / cos y %0.2f", z, angle.y, cosf(angle.y));
+    debugLog(@"z: %0.1f / y angle: %0.2f / cos y %0.2f", z, angle.y, cosf(angle.y));
     z = z/downscale_factor;
-    NSLog(@"I think Z is: %0.2f", z);
+    debugLog(@"I think Z is: %0.2f", z);
 
     // Return tip of nose
     return SCNVector3Make(shape[30].x(), shape[30].y(), z);

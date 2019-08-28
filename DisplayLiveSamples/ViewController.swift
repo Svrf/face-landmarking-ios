@@ -21,7 +21,51 @@ class ViewController: UIViewController {
     @IBOutlet weak var yawWarning: UILabel!
     @IBOutlet weak var rollWarning: UILabel!
 
-    var headbandNode: SCNNode?
+    let headwearFiles = [
+        "headwear1.glb",
+        "headwear2.glb",
+        "headwear3.glb",
+        "headwear4.glb",
+        "headwear5.glb",
+        nil,
+    ]
+    var headwearIndex = 0
+
+    let mustacheFiles = [
+        "mustache1.glb",
+        "mustache2.glb",
+        "mustache3.glb",
+        nil,
+    ]
+    var mustacheIndex = 0
+
+    let glassesFiles = [
+        "glasses1.glb",
+        "glasses2.glb",
+        "glasses3.glb",
+        "glasses4.glb",
+        "glasses5.glb",
+        nil,
+    ]
+    var glassesIndex = 0
+
+    let earringsFiles = [
+        "earrings1.glb",
+        "earrings2.glb",
+        "earrings3.glb",
+        nil,
+    ]
+    var earringsIndex = 0
+
+    let skinFiles = [
+        "skin1.glb",
+        "skin2.glb",
+        "skin3.glb",
+        nil,
+    ]
+    var skinIndex = 0
+
+    var headwearNode: SCNNode?
     var glassesNode: SCNNode?
     var earringsNode: SCNNode?
     var mustacheNode: SCNNode?
@@ -47,9 +91,9 @@ class ViewController: UIViewController {
         self.camera = camera
         // iPhone 7: 55
         // iPhone X: 65
-        camera.fieldOfView = 55
+        camera.fieldOfView =  65
 //        if let fov = sessionHandler.hfov {
-//            camera.fieldOfView = CGFloat(fov/3)
+//            camera.fieldOfView = CGFloat(fov/2)
 //            camera.projectionDirection = .horizontal
 //        }
         cameraNode.position = SCNVector3(x: 0.0, y: 0.0, z: 1)
@@ -69,38 +113,32 @@ class ViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
 
+    func addNode(_ name: String) -> SCNNode {
+        let node = try! loadFaceNode(name)
+        node.scale = SCNVector3(6,6,6)//3.2,3.2,3.2) // TODO why does this need to be scaled up so much?
+        sessionHandler.refNode!.addChildNode(node)
+
+        return node
+    }
+
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
 
         let layer = sessionHandler.layer
         layer.frame = preview.bounds
         preview.layer.insertSublayer(layer, below: sceneView.layer)
-        let refNode = SCNNode()
+        sessionHandler.refNode = SCNNode()
 
-        let headwear = try! loadFaceNode("headwear1.glb")
-        headwear.scale = SCNVector3(6,6,6)//3.2,3.2,3.2) // TODO why does this need to be scaled up so much?
-        headbandNode = headwear
-        refNode.addChildNode(headwear)
+        headwearNode = addNode("headwear1.glb")
+        glassesNode = addNode("eyewear1.glb")
+        earringsNode = addNode("earrings1.glb")
+        mustacheNode = addNode("mustache.glb")
 
-        let glasses = try! loadFaceNode("eyewear1.glb")
-        glasses.scale = SCNVector3(6,6,6)//3.2,3.2,3.2) // TODO why does this need to be scaled up so much?
-        glassesNode = glasses
-        refNode.addChildNode(glasses)
-
-        let earrings = try! loadFaceNode("earrings.glb")
-        earrings.scale = SCNVector3(6,6,6)//3.2,3.2,3.2) // TODO why does this need to be scaled up so much?
-        earringsNode = earrings
-        refNode.addChildNode(earrings)
-
-        let mustache = try! loadFaceNode("mustache.glb")
-        mustache.scale = SCNVector3(6,6,6)//3.2,3.2,3.2) // TODO why does this need to be scaled up so much?
-        mustacheNode = mustache
-        refNode.addChildNode(mustache)
+        sessionHandler.calibrateNodes()
 
 //        let cubeGeometry = SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0.0)
 //        let cubeNode = SCNNode(geometry: cubeGeometry)
 
-        sessionHandler.refNode = refNode
         sceneView.scene?.rootNode.addChildNode(sessionHandler.refNode!)
 
         view.layoutIfNeeded()
@@ -120,21 +158,52 @@ class ViewController: UIViewController {
     }
 
     @IBAction func headbandTapped(_ sender: UIBarButtonItem) {
-        headbandNode?.isHidden = !headbandNode!.isHidden
+        headwearIndex += 1
+        headwearIndex %= headwearFiles.count
+        if let file = headwearFiles[headwearIndex] {
+            headwearNode?.removeFromParentNode()
+            headwearNode = addNode(file)
+            headwearNode?.isHidden = false
+        } else {
+            headwearNode?.isHidden = true
+        }
     }
 
     @IBAction func glassesTapped(_ sender: UIBarButtonItem) {
-        glassesNode?.isHidden = !glassesNode!.isHidden
+        glassesIndex += 1
+        glassesIndex %= glassesFiles.count
+        if let file = glassesFiles[glassesIndex] {
+            glassesNode?.removeFromParentNode()
+            glassesNode = addNode(file)
+            glassesNode?.isHidden = false
+        } else {
+            glassesNode?.isHidden = true
+        }
     }
 
     @IBAction func earringsTapped(_ sender: UIBarButtonItem) {
-        earringsNode?.isHidden = !earringsNode!.isHidden
+        earringsIndex += 1
+        earringsIndex %= earringsFiles.count
+        if let file = earringsFiles[earringsIndex] {
+            earringsNode?.removeFromParentNode()
+            earringsNode = addNode(file)
+            earringsNode?.isHidden = false
+        } else {
+            earringsNode?.isHidden = true
+        }
     }
 
     @IBAction func mustacheTapped(_ sender: UIBarButtonItem) {
-        mustacheNode?.isHidden = !mustacheNode!.isHidden
+        mustacheIndex += 1
+        mustacheIndex %= mustacheFiles.count
+        if let file = mustacheFiles[mustacheIndex] {
+            mustacheNode?.removeFromParentNode()
+            mustacheNode = addNode(file)
+            mustacheNode?.isHidden = false
+        } else {
+            mustacheNode?.isHidden = true
+        }
     }
-
 
     // MARK: - Model management
 
