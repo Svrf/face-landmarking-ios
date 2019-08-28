@@ -15,10 +15,9 @@ extern "C" {
 
 #include <stdio.h>
 
-    extern double min_cutoff;
-    extern double beta;
-    extern double d_cutoff;
-    extern double initial_noise_threshold;
+extern double min_cutoff;
+extern double beta;
+extern double d_cutoff;
 
 double filter(double x, double t, unsigned int index);
 

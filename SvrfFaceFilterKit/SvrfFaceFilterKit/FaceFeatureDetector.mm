@@ -30,6 +30,7 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
 + (std::vector<dlib::rectangle>)convertCGRectValueArray:(NSArray<NSValue *> *)rects;
 
 @end
+
 @implementation FaceFeatureDetector {
     dlib::shape_predictor sp;
     dlib::frontal_face_detector detector;
@@ -40,6 +41,8 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
     // Counter for low pass filter
     double frame_number;
     NSTimeInterval last_frame_epoch;
+
+    double lastFrameXAngle, lastFrameYAngle, lastFrameZAngle;
 }
 
 - (instancetype)init {
@@ -97,6 +100,9 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
 
 - (void)resetFrameNumber {
     frame_number = 0.0;
+    lastFrameXAngle = 0;
+    lastFrameYAngle = 0;
+    lastFrameZAngle = 0;
 }
 
 //- (double)slider1Value {
@@ -343,14 +349,20 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
     cv::decomposeProjectionMatrix(pose_mat, out_intrinsics, out_rotation, out_translation, cv::noArray(), cv::noArray(), cv::noArray(), euler_angle);
 
     // Correct for front camera mirroring, + magic number offsets
+    double xAngle = euler_angle.at<double>(0);
+    double yAngle = euler_angle.at<double>(1);
+    double zAngle = euler_angle.at<double>(2);
 
     self.headPoseAngle =
-    SCNVector3Make(M_PI + ((15 + euler_angle.at<double>(0)) * M_PI / 180),
-                   M_PI + ((22 + euler_angle.at<double>(1)) * M_PI / 180),
-                   -(euler_angle.at<double>(2)) * M_PI / 180);
+    SCNVector3Make(M_PI + ((15 + xAngle) * M_PI / 180),
+                   M_PI + ((22 + yAngle) * M_PI / 180),
+                   -zAngle * M_PI / 180);
 
     debugLog(@"Face Rotation Angle:  %.5f %.5f %.5f\n",self.headPoseAngle.x, self.headPoseAngle.y*2, self.headPoseAngle.z);
 
+    lastFrameXAngle = xAngle;
+    lastFrameYAngle = yAngle;
+    lastFrameZAngle = zAngle;
     // Get the hacked up position vector
     SCNVector3 position = [self estimatePositionFromShape:shape image:img width:width height:height angle: self.headPoseAngle];
 //    double newZ = (out_translation.at<double>(2)+1);
@@ -390,7 +402,7 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
         draw_solid_circle(img, dlib::point(shape[33].x(), shape[33].y()), 6, dlib::rgb_pixel(0, 0, 255));
     }
 
-    double divisor = 123; // self.slider1Value * 3; // 1.03
+    double divisor = 1.23; // self.slider1Value * 3; // 1.03
     double downscale_factor = 546; //self.slider2Value * 1000; // 1000
 
     debugLog(@"divisor: %0.2f / downscale factor: %0.1f", divisor, downscale_factor);

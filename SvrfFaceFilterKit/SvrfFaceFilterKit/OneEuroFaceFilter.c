@@ -18,10 +18,9 @@ extern "C" {
 
 static const unsigned long NUM_POINTS = (68*2) + 3;
 
-    double min_cutoff = 0.585;//1.0;
-    double beta = 0.0;
-    double d_cutoff = 2.0;//0.106;//1.0;
-    double initial_noise_threshold = 0.5;
+double min_cutoff = 0.585;//1.0;
+double beta = 0.0;
+double d_cutoff = 2.0;//0.106;//1.0;
 
 double prev_x[NUM_POINTS];
 double prev_dx[NUM_POINTS];
@@ -37,6 +36,13 @@ double exponentialSmoothing(double a, double x, double prevX) {
 }
 
 double filter(double x, double t, unsigned int index) {
+    // Reset initial values
+    if (t == 0.0) {
+        prev_t[index] = t;
+        prev_dx[index] = 0;
+        prev_x[index] = x;
+    }
+
     double t_e = t - prev_t[index];
 
     // The filtered derivative of the signal
@@ -54,12 +60,7 @@ double filter(double x, double t, unsigned int index) {
     prev_dx[index] = dx_hat;
     prev_t[index] = t;
 
-    // Don't start returning filtered data 'til it's ready
-    if (t > initial_noise_threshold) {
-        return x_hat;
-    } else {
-        return x;
-    }
+    return x_hat;
 }
 
 #ifdef __cplusplus
