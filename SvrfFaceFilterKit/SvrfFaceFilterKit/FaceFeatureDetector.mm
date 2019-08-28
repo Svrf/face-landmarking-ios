@@ -388,7 +388,7 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
     }
 
     self.headPoseAngle =
-    SCNVector3Make(M_PI + ((15 + xAngle) * M_PI / 180),
+    SCNVector3Make(M_PI + ((10 + xAngle) * M_PI / 180),
                    M_PI + ((22 + yAngle) * M_PI / 180),
                    -zAngle * M_PI / 180);
 
