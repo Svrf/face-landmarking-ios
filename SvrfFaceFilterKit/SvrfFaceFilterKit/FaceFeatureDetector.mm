@@ -353,6 +353,40 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
     double yAngle = euler_angle.at<double>(1);
     double zAngle = euler_angle.at<double>(2);
 
+    /* Adjust for large outliers */
+    // Account for 30 degree leaps based on reverse projection errors
+
+    if (lastFrameYAngle != 0 && abs(yAngle - lastFrameYAngle) > 25) {
+        double diff = lastFrameYAngle - yAngle;
+        debugLog(@"Anomaly in Y Angle: %0.2f deg, X diff %0.2f", diff, lastFrameXAngle - xAngle);
+        if (diff > -35 && diff < -25) {
+            yAngle -= 30;
+        } else if (diff > 25 && diff < 35) {
+            yAngle += 30;
+        }
+        diff = lastFrameYAngle - yAngle;
+        debugLog(@"Anomaly in Y adjusted to: %0.2f deg", diff);
+
+    }
+    lastFrameYAngle = yAngle;
+
+    if (lastFrameXAngle != 0 && abs(xAngle - lastFrameXAngle) > 25) {
+        double diff = lastFrameXAngle - xAngle;
+        debugLog(@"Anomaly in X Angle: %0.2f deg", diff);
+        if (diff < -25 && diff > -35) {
+            xAngle -= 30;
+        } else if (diff > 25 && diff < 35) {
+            xAngle += 30;
+        }
+    }
+    lastFrameXAngle = xAngle;
+
+    if (lastFrameZAngle != 0 && abs(zAngle - lastFrameZAngle) > 25 && 360-abs(zAngle - lastFrameZAngle) > 25) {
+        debugLog(@"Anomaly in Z Angle: %0.2f deg", zAngle - lastFrameZAngle);
+    } else {
+        lastFrameZAngle = zAngle;
+    }
+
     self.headPoseAngle =
     SCNVector3Make(M_PI + ((15 + xAngle) * M_PI / 180),
                    M_PI + ((22 + yAngle) * M_PI / 180),
@@ -360,9 +394,6 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
 
     debugLog(@"Face Rotation Angle:  %.5f %.5f %.5f\n",self.headPoseAngle.x, self.headPoseAngle.y*2, self.headPoseAngle.z);
 
-    lastFrameXAngle = xAngle;
-    lastFrameYAngle = yAngle;
-    lastFrameZAngle = zAngle;
     // Get the hacked up position vector
     SCNVector3 position = [self estimatePositionFromShape:shape image:img width:width height:height angle: self.headPoseAngle];
 //    double newZ = (out_translation.at<double>(2)+1);

@@ -164,16 +164,14 @@ public class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBuffe
             detector?.doWork(on: sampleBuffer, inRects: boundsArray)
             if let angle = detector?.headPoseAngle, let position = detector?.headPosition,
                 (position.x != 0 || position.y != 0 || position.z != 0)  {
-                DispatchQueue.main.async { 
-                    self.refNode?.isHidden = false
-//                    var validAngle = true
+                DispatchQueue.main.async {
+                    self.showFaceFilters()
                     if let roll = rollMetadata {
                         let adjustedRoll = (Float(roll)*Float.pi/180) - Float.pi/2
                         let rollDiff = min(abs(adjustedRoll - angle.z), abs(adjustedRoll - angle.z - 2*Float.pi))
                         if rollDiff > Float.pi/2 {
                             self.rollWarning?.isHidden = false
                             self.rollWarning?.text = String(format:"Roll off: %0.2f", rollDiff)
-//                            validAngle = false
                         } else {
                             self.rollWarning?.isHidden = true
                         }
@@ -185,16 +183,12 @@ public class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBuffe
                             self.yawWarning?.isHidden = false
                             self.yawWarning?.text = String(format:"Yaw off: %0.2f", yawDiff)
                             self.hideFaceFilters()
-  //                          validAngle = false
                         } else {
-                            self.refNode?.isHidden = false
-
+                            self.showFaceFilters()
                             self.yawWarning?.isHidden = true
                         }
                     }
-//                    if (validAngle) {
-                        self.refNode?.eulerAngles = angle
-//                    }
+                    self.refNode?.eulerAngles = angle
                     let scaledPosition = SCNVector3(x: position.x * Float(self.scnView!.frame.size.width/self.detector!.cameraBufferSize.width),
                                                     y: position.y * Float(self.scnView!.frame.size.height/self.detector!.cameraBufferSize.height),
                                                     z: position.z)
@@ -231,6 +225,12 @@ public class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBuffe
 
     private func hideFaceFilters() {
         self.refNode?.isHidden = true
-        detector?.resetFrameNumber()
+    }
+
+    private func showFaceFilters() {
+        if (self.refNode?.isHidden ?? false) {
+            self.detector?.resetFrameNumber()
+            self.refNode?.isHidden = false
+        }
     }
 }
