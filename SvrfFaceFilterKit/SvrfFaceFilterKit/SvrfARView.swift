@@ -17,6 +17,9 @@ open class SvrfARView: UIView {
 
     private var renderMode: RenderMode!
 
+    // Common
+    private var faceRootNode: SCNNode?
+
     // ARKit face tracking
     private var arSceneView: ARSCNView?
 
@@ -40,6 +43,7 @@ open class SvrfARView: UIView {
         case .Svrf:
             sessionHandler?.refNode?.addChildNode(node)
         case .ARKit:
+            faceRootNode?.addChildNode(node)
             print("TODO");
         }
     }
@@ -78,6 +82,10 @@ open class SvrfARView: UIView {
             renderMode = .ARKit
 
             arSceneView = ARSCNView(frame: self.bounds)
+            arSceneView?.delegate = self
+            let configuration = ARFaceTrackingConfiguration()
+            arSceneView?.session.run(configuration)
+
             self.addSubview(arSceneView!)
         } else {
             renderMode = .Svrf
@@ -118,6 +126,7 @@ open class SvrfARView: UIView {
                 let refNode = SCNNode()
                 sessionHandler.refNode = refNode
                 sceneView.scene?.rootNode.addChildNode(refNode)
+                faceRootNode = refNode
             }
         }
     }
@@ -138,4 +147,33 @@ open class SvrfARView: UIView {
             return 55
         }
     }
+}
+
+extension SvrfARView : ARSCNViewDelegate {
+
+    // ARNodeTracking
+    public func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+
+        // Hold onto the `faceNode` so that the session does not need to be restarted when switching face filters.
+        faceRootNode = node
+
+        // Put code into async thread
+//        serialQueue.async {
+//
+//            // Setup face node content
+//            self.setupFaceNodeContent()
+//        }
+    }
+
+    // ARFaceGeometryUpdate
+    public func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
+
+        // FaceAnchor unwrapping
+        guard let faceAnchor = anchor as? ARFaceAnchor, let device = renderer.device else { return }
+
+        // Update virtualFaceNode with FaceAnchor and MTLDevice
+        // TODO: propagate blend shapes
+//        virtualFaceNode?.update(withFaceAnchor: faceAnchor, andMTLDevice: device)
+    }
+
 }
