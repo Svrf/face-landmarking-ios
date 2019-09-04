@@ -13,7 +13,7 @@
 @interface FaceFeatureDetector : NSObject
 
 - (instancetype)init;
-- (void)doWorkOnSampleBuffer:(CMSampleBufferRef)sampleBuffer inRects:(NSArray<NSValue *> *)rects;
+- (void)findFacePositionInSampleBuffer:(CMSampleBufferRef)sampleBuffer rects:(NSArray<NSValue *> *)rects;
 - (void)prepare;
 - (void)resetFrameNumber;
 

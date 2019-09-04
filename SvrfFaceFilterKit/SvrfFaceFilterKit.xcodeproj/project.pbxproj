@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8839A54423200F07000CE811 /* SvrfARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8839A54323200F07000CE811 /* SvrfARView.swift */; };
+		8839A54623201F1A000CE811 /* UIDevice+Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8839A54523201F1A000CE811 /* UIDevice+Model.swift */; };
 		889056BA23144678004F19E9 /* SvrfFaceFilterKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 889056B823144678004F19E9 /* SvrfFaceFilterKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		889056C92314471A004F19E9 /* libdlib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 889056C723144715004F19E9 /* libdlib.a */; };
 		889056CA2314471A004F19E9 /* shape_predictor_68_face_landmarks.dat in Resources */ = {isa = PBXBuildFile; fileRef = 889056C82314471A004F19E9 /* shape_predictor_68_face_landmarks.dat */; };
@@ -17,6 +19,8 @@
 
 /* Begin PBXFileReference section */
 		1D30421C8D8F0B4B8FBA120B /* Pods-SvrfFaceFilterKit.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-SvrfFaceFilterKit.debug.xcconfig"; path = "Target Support Files/Pods-SvrfFaceFilterKit/Pods-SvrfFaceFilterKit.debug.xcconfig"; sourceTree = "<group>"; };
+		8839A54323200F07000CE811 /* SvrfARView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SvrfARView.swift; sourceTree = "<group>"; };
+		8839A54523201F1A000CE811 /* UIDevice+Model.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "UIDevice+Model.swift"; path = "util/UIDevice+Model.swift"; sourceTree = "<group>"; };
 		889056B523144678004F19E9 /* SvrfFaceFilterKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SvrfFaceFilterKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		889056B823144678004F19E9 /* SvrfFaceFilterKit.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SvrfFaceFilterKit.h; sourceTree = "<group>"; };
 		889056B923144678004F19E9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -83,6 +87,8 @@
 				889056D22314475C004F19E9 /* FaceTrackingHandler.swift */,
 				889056D923147364004F19E9 /* module.modulemap */,
 				889056B923144678004F19E9 /* Info.plist */,
+				8839A54323200F07000CE811 /* SvrfARView.swift */,
+				8839A54523201F1A000CE811 /* UIDevice+Model.swift */,
 			);
 			path = SvrfFaceFilterKit;
 			sourceTree = "<group>";
@@ -217,7 +223,9 @@
 			files = (
 				889056CE2314473D004F19E9 /* OneEuroFaceFilter.c in Sources */,
 				889056D32314475C004F19E9 /* FaceTrackingHandler.swift in Sources */,
+				8839A54423200F07000CE811 /* SvrfARView.swift in Sources */,
 				889056D123144754004F19E9 /* FaceFeatureDetector.mm in Sources */,
+				8839A54623201F1A000CE811 /* UIDevice+Model.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -35,10 +35,10 @@ public class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBuffe
         let device = discoverySession.devices.first!
 
         let input = try! AVCaptureDeviceInput(device: device)
-        
+
         let output = AVCaptureVideoDataOutput()
         output.setSampleBufferDelegate(self, queue: sampleQueue)
-        
+
         let metaOutput = AVCaptureMetadataOutput()
         metaOutput.setMetadataObjectsDelegate(self, queue: faceQueue)
 
@@ -107,7 +107,8 @@ public class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBuffe
             let height = maxBox.y - minBox.y
             let depth = maxBox.z - minBox.z
             // These constants are specific to our particular occluder.
-            let nose = SCNVector3Make((maxBox.x + minBox.x)/2 - width*0.15,
+            let nose = SCNVector3Make((maxBox.x + minBox.x)/2 - width*0.13
+                ,
                                       ((maxBox.y + minBox.y)/2) + height*0.15,
                                       maxBox.z + depth*1.9)
             print("Nose from bounding box: \(nose)")
@@ -161,7 +162,7 @@ public class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBuffe
                     return NSValue(cgRect: rect)
             }
             
-            detector?.doWork(on: sampleBuffer, inRects: boundsArray)
+            detector?.findFacePosition(in: sampleBuffer, rects: boundsArray)
             if let angle = detector?.headPoseAngle, let position = detector?.headPosition,
                 (position.x != 0 || position.y != 0 || position.z != 0)  {
                 DispatchQueue.main.async {

@@ -13,10 +13,8 @@ import SvrfGLTFSceneKit
 import SvrfFaceFilterKit
 
 class ViewController: UIViewController {
-    let sessionHandler = FaceTrackingHandler()
     
-    @IBOutlet weak var preview: UIView!
-    @IBOutlet weak var sceneView: SCNView!
+    @IBOutlet weak var arView: SvrfARView!
 
     @IBOutlet weak var yawWarning: UILabel!
     @IBOutlet weak var rollWarning: UILabel!
@@ -73,39 +71,6 @@ class ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        sessionHandler.scnView = sceneView
-        sessionHandler.openSession()
-
-        sessionHandler.yawWarning = yawWarning
-        sessionHandler.rollWarning = rollWarning
-
-        let scene = SCNScene()
-        sceneView.scene = scene
-        sceneView.autoenablesDefaultLighting = true
-//        sceneView.alpha = 0.5
-
-        let camera = SCNCamera()
-        let cameraNode = SCNNode()
-        cameraNode.camera = camera
-        self.camera = camera
-        // iPhone 7: 55
-        // iPhone X: 65
-        camera.fieldOfView =  65
-//        if let fov = sessionHandler.hfov {
-//            camera.fieldOfView = CGFloat(fov/2)
-//            camera.projectionDirection = .horizontal
-//        }
-        cameraNode.position = SCNVector3(x: 0.0, y: 0.0, z: 1)
-
-//        let light = SCNLight()
-//        light.type = .omni
-//        let lightNode = SCNNode()
-//        lightNode.light = light
-//        lightNode.position = SCNVector3(x: 1.5, y: 1.5, z: 1.5)
-//
-//        scene.rootNode.addChildNode(lightNode)
-        scene.rootNode.addChildNode(cameraNode)
     }
 
     override func didReceiveMemoryWarning() {
@@ -116,7 +81,8 @@ class ViewController: UIViewController {
     func addNode(_ name: String) -> SCNNode {
         let node = try! loadFaceNode(name)
         node.scale = SCNVector3(6,6,6)//3.2,3.2,3.2) // TODO why does this need to be scaled up so much?
-        sessionHandler.refNode!.addChildNode(node)
+        arView.addChildNode(node)
+//        sessionHandler.refNode!.addChildNode(node)
 
         return node
     }
@@ -124,32 +90,28 @@ class ViewController: UIViewController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
 
-        let layer = sessionHandler.layer
-        layer.frame = preview.bounds
-        preview.layer.insertSublayer(layer, below: sceneView.layer)
-        sessionHandler.refNode = SCNNode()
-
         headwearNode = addNode("headwear1.glb")
         glassesNode = addNode("eyewear1.glb")
         earringsNode = addNode("earrings1.glb")
         mustacheNode = addNode("mustache.glb")
 
-        sessionHandler.calibrateNodes()
+        arView.calibrateNodes()
+        arView.setWarningLabels(yaw: yawWarning, roll: rollWarning)
 
 //        let cubeGeometry = SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0.0)
 //        let cubeNode = SCNNode(geometry: cubeGeometry)
 
-        sceneView.scene?.rootNode.addChildNode(sessionHandler.refNode!)
+//        sceneView.scene?.rootNode.addChildNode(sessionHandler.refNode!)
 
         view.layoutIfNeeded()
     }
 
     @IBAction func slider1Changed(_ sender: UISlider) {
-        sessionHandler.updateSlider1(sender.value)
+        arView.updateSlider1(sender.value)
     }
 
     @IBAction func slider2Changed(_ sender: UISlider) {
-        sessionHandler.updateSlider2(sender.value)
+        arView.updateSlider2(sender.value)
     }
 
     @IBAction func slider3Changed(_ sender: UISlider) {

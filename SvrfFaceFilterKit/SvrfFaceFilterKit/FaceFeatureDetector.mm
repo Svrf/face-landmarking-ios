@@ -21,7 +21,7 @@
 static unsigned int FACE_RECT_OVERFLOW=10;
 const static bool SMOOTH_POINTS = true; /* Filter face detection points */
 const static double FRAME_ADVANCE = 0.10; /* higher = more responsive, more noise */
-const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rect around face */
+const static bool DRAW_FACE_DETECTION_POINTS = true; /* Points for face and rect around face */
 
 @interface FaceFeatureDetector ()
 
@@ -36,7 +36,7 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
     dlib::frontal_face_detector detector;
 
     // 3d representation of face points for reverse-projection
-    std::vector<cv::Point3d> object_pts;
+    std::vector<cv::Point3d> face_points_3d;
 
     // Counter for low pass filter
     double frame_number;
@@ -53,21 +53,16 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
         frame_number = 0;
         last_frame_epoch = 0;
 
-        //fill in 3D ref points(world coordinates), model referenced from http://aifi.isr.uc.pt/Downloads/OpenGL/glAnthropometric3DModel.cpp
-        object_pts.push_back(cv::Point3d(6.825897, 6.760612, 4.402142));     //#33 left brow left corner
-        object_pts.push_back(cv::Point3d(1.330353, 7.122144, 6.903745));     //#29 left brow right corner
-        object_pts.push_back(cv::Point3d(-1.330353, 7.122144, 6.903745));    //#34 right brow left corner
-        object_pts.push_back(cv::Point3d(-6.825897, 6.760612, 4.402142));    //#38 right brow right corner
-        object_pts.push_back(cv::Point3d(5.311432, 5.485328, 3.987654));     //#13 left eye left corner
-        object_pts.push_back(cv::Point3d(1.789930, 5.393625, 4.413414));     //#17 left eye right corner
-        object_pts.push_back(cv::Point3d(-1.789930, 5.393625, 4.413414));    //#25 right eye left corner
-        object_pts.push_back(cv::Point3d(-5.311432, 5.485328, 3.987654));    //#21 right eye right corner
-        object_pts.push_back(cv::Point3d(2.005628, 1.409845, 6.165652));     //#55 nose left corner
-        object_pts.push_back(cv::Point3d(-2.005628, 1.409845, 6.165652));    //#49 nose right corner
-        object_pts.push_back(cv::Point3d(2.774015, -2.080775, 5.048531));    //#43 mouth left corner
-        object_pts.push_back(cv::Point3d(-2.774015, -2.080775, 5.048531));   //#39 mouth right corner
-        object_pts.push_back(cv::Point3d(0.000000, -3.116408, 6.097667));    //#45 mouth central bottom corner
-        object_pts.push_back(cv::Point3d(0.000000, -7.415691, 4.070434));    //#6 chin corner
+        face_points_3d = {
+            cv::Point3f(2.37427,110.322,21.7776),    // l eye (v 314)
+            cv::Point3f(70.0602,109.898,20.8234),    // r eye (v 0)
+            cv::Point3f(36.8301,78.3185,52.0345),    // nose (v 1879)
+            cv::Point3f(14.8498,51.0115,30.2378),    // l mouth (v 1502)
+            cv::Point3f(58.1825,51.0115,29.6224),    // r mouth (v 695)
+            cv::Point3f(-61.8886f,127.797,-89.4523f),  // l ear (v 2011)
+            cv::Point3f(127.603,126.9,-83.9129f)
+        };     // r ear (v 1138)
+
     }
     return self;
 }
@@ -105,10 +100,6 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
     lastFrameZAngle = 0;
 }
 
-//- (double)slider1Value {
-//    return _slider1Value;
-//}
-
 - (void)populateImageArray:(dlib::array2d<dlib::bgr_pixel> &)img
                      width:(size_t *)width
                     height:(size_t *)height
@@ -131,7 +122,7 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
         dlib::bgr_pixel& pixel = img.element();
 
         // assuming bgra format here
-        long bufferLocation = position * 4; //(row * width + column) * 4;
+        long bufferLocation = position * 4; // (row * width + column) * 4;
         char b = baseBuffer[bufferLocation];
         char g = baseBuffer[bufferLocation + 1];
         char r = baseBuffer[bufferLocation + 2];
@@ -172,7 +163,7 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
 
 }
 
-- (void)doWorkOnSampleBuffer:(CMSampleBufferRef)sampleBuffer inRects:(NSArray<NSValue *> *)rects {
+- (void)findFacePositionInSampleBuffer:(CMSampleBufferRef)sampleBuffer rects:(NSArray<NSValue *> *)rects {
     if (!self.prepared) {
         [self prepare];
     }
@@ -221,7 +212,7 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
         self.headPosition = SCNVector3Zero;
     }
 
-    // lets put everything back where it belongs
+    // put everything back where it belongs
     CVPixelBufferLockBaseAddress(imageBuffer, 0);
 
     [self populateSampleBuffer:imageBuffer withImageArray:img];
@@ -313,17 +304,17 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
 
     // Labelling the 3D Points derived from a 3D model of human face.
     // You may replace these points as per your custom 3D head model if any
-    std::vector<cv::Point3f > model_points = {
-        cv::Point3f(2.37427,110.322,21.7776),    // l eye (v 314)
-        cv::Point3f(70.0602,109.898,20.8234),    // r eye (v 0)
-        cv::Point3f(36.8301,78.3185,52.0345),    //nose (v 1879)
-        cv::Point3f(14.8498,51.0115,30.2378),    // l mouth (v 1502)
-        cv::Point3f(58.1825,51.0115,29.6224),    // r mouth (v 695)
-        cv::Point3f(-61.8886f,127.797,-89.4523f),  // l ear (v 2011)
-        cv::Point3f(127.603,126.9,-83.9129f)
-    };     // r ear (v 1138)
+//    std::vector<cv::Point3f > model_points = {
+//        cv::Point3f(2.37427,110.322,21.7776),    // l eye (v 314)
+//        cv::Point3f(70.0602,109.898,20.8234),    // r eye (v 0)
+//        cv::Point3f(36.8301,78.3185,52.0345),    // nose (v 1879)
+//        cv::Point3f(14.8498,51.0115,30.2378),    // l mouth (v 1502)
+//        cv::Point3f(58.1825,51.0115,29.6224),    // r mouth (v 695)
+//        cv::Point3f(-61.8886f,127.797,-89.4523f),  // l ear (v 2011)
+//        cv::Point3f(127.603,126.9,-83.9129f)
+//    };     // r ear (v 1138)
 
-    // labelling the position of corresponding feature points on the input image.
+    // labeling the position of corresponding feature points on the input image.
     std::vector<cv::Point2f> src_image_points = {
         cv::Point2f((shape[42].x() + shape[45].x())/2, (shape[42].y() + shape[45].y())/2), // left eye
         cv::Point2f((shape[39].x() + shape[36].x())/2, (shape[39].y() + shape[36].y())/2), // right eye
@@ -334,10 +325,10 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
         cv::Point2f(shape[0].x(), shape[0].y()), // right ear
     };
 
-    //calc pose
-    cv::solvePnP(model_points, src_image_points, cam_matrix, dist_coeffs, rotation_vec, translation_vec, false, cv::SOLVEPNP_UPNP);
+    // reverse-project the 2d points into 3d
+    cv::solvePnP(face_points_3d, src_image_points, cam_matrix, dist_coeffs, rotation_vec, translation_vec, false, cv::SOLVEPNP_UPNP);
 
-    //calc euler angle
+    // calc euler angle
 
     // Convert rotation vector into rotation matrix
     cv::Rodrigues(rotation_vec, rotation_mat);
@@ -352,6 +343,7 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
     double xAngle = euler_angle.at<double>(0);
     double yAngle = euler_angle.at<double>(1);
     double zAngle = euler_angle.at<double>(2);
+    debugLog(@"Unadjusted Face Rotation Angle: %.5f, %.5f, %.5f\n",xAngle, yAngle, zAngle);
 
     /* Adjust for large outliers */
     // Account for 30 degree leaps based on reverse projection errors
@@ -389,10 +381,10 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
 
     self.headPoseAngle =
     SCNVector3Make(M_PI + ((10 + xAngle) * M_PI / 180),
-                   M_PI + ((22 + yAngle) * M_PI / 180),
+                   M_PI + ((20.5 + yAngle) * M_PI / 180),
                    -zAngle * M_PI / 180);
 
-    debugLog(@"Face Rotation Angle:  %.5f %.5f %.5f\n",self.headPoseAngle.x, self.headPoseAngle.y*2, self.headPoseAngle.z);
+    debugLog(@"Face Rotation Angle: %.5f, %.5f, %.5f\n",self.headPoseAngle.x, self.headPoseAngle.y*2, self.headPoseAngle.z);
 
     // Get the hacked up position vector
     SCNVector3 position = [self estimatePositionFromShape:shape image:img width:width height:height angle: self.headPoseAngle];
