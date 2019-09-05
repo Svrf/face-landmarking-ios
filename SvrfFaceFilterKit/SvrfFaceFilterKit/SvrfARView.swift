@@ -38,9 +38,9 @@ open class SvrfARView: UIView {
         setup()
     }
 
-    public func addChildNode(_ node: SCNNode) {
+    public func addFaceNode(_ node: SCNNode) {
         if renderMode == .Svrf {
-            node.scale = SCNVector3(6,6,6)//3.2,3.2,3.2) // TODO why does this need to be scaled up so much? Try adjusting detector Z values instead
+            node.scale = SCNVector3(6,6,6) // TODO why does this need to be scaled up so much? Try adjusting detector Z values instead
         }
         faceRootNode?.addChildNode(node)
     }

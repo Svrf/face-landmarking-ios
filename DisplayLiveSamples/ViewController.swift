@@ -80,7 +80,7 @@ class ViewController: UIViewController {
 
     func addNode(_ name: String) -> SCNNode {
         let node = try! loadFaceNode(name)
-        arView.addChildNode(node)
+        arView.addFaceNode(node)
 //        sessionHandler.refNode!.addChildNode(node)
 
         return node

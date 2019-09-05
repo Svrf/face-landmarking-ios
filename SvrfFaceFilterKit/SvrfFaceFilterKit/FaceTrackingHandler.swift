@@ -141,19 +141,7 @@ public class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBuffe
                     let rect = convertedObject.bounds
                     if (faceObject.hasYawAngle) {
                         yawMetadata = faceObject.yawAngle
-                        print("Yaw metadata: \(String(describing: yawMetadata))")
-/*                        if (yawMetadata! > 180.0 && yawMetadata! <= 315.0) {
-                            rect = CGRect(x: rect.minX,// - (rect.width/4),
-                                          y: rect.minY,
-                                          width: rect.width * 4/5,
-                                          height: rect.height)
-                        }
-                        if (yawMetadata! >= 45.0 && yawMetadata! < 180.0) {
-                            rect = CGRect(x: rect.minX + (rect.width * 1/5),
-                                y: rect.minY,
-                                width: rect.width * 4/5,
-                                height: rect.height)
-                        }*/
+//                        print("Yaw metadata: \(String(describing: yawMetadata))")
                     }
                     if (faceObject.hasRollAngle) {
                         rollMetadata = faceObject.rollAngle
@@ -194,13 +182,8 @@ public class FaceTrackingHandler : NSObject, AVCaptureVideoDataOutputSampleBuffe
                                                     y: position.y * Float(self.scnView!.frame.size.height/self.detector!.cameraBufferSize.height),
                                                     z: position.z)
                     let noseTip = self.scnView!.unprojectPoint(scaledPosition)
-//                    let (_, sphereRadius) = self.refNode!.boundingSphere
-//                    let xCenter = cos(Float.pi/2 - angle.x)*sphereRadius
-//                    let yCenter = sin(Float.pi/2 - angle.y)*sphereRadius
-//                    let zCenter = cos(Float.pi/2 - angle.z)*sphereRadius
-//                    let centerPoint = SCNVector3Make(noseTip.x + xCenter, noseTip.y + yCenter, noseTip.z + zCenter)
                     self.refNode?.position = noseTip
-                    print("Position: \(position) - unprojected: \(self.refNode!.position)")
+//                    print("Position: \(position) - unprojected: \(self.refNode!.position)")
                 }
             } else {
                 DispatchQueue.main.async {

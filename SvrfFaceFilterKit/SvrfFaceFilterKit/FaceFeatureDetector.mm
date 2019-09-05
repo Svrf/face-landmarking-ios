@@ -1,5 +1,6 @@
 
 #import "FaceFeatureDetector.h"
+#import "UIDevice+Model.h"
 #import <UIKit/UIKit.h>
 
 #include <dlib/image_processing.h>
@@ -11,11 +12,11 @@
 
 #include "OneEuroFaceFilter.h"
 
-//#ifdef DEBUG
+#ifdef DEBUG
     #define debugLog(s, ...) NSLog(s, ##__VA_ARGS__)
-//#else
-//    #define debugLog(s, ...)
-//#endif
+#else
+    #define debugLog(s, ...)
+#endif
 
 // How much larger to expand the discovered face rectangle
 static unsigned int FACE_RECT_OVERFLOW=10;
@@ -225,6 +226,22 @@ const static bool DRAW_FACE_DETECTION_POINTS = false; /* Points for face and rec
     last_frame_epoch = newTime;
 }
 
++ (std::vector<dlib::rectangle>)convertCGRectValueArray:(NSArray<NSValue *> *)rects {
+    std::vector<dlib::rectangle> myConvertedRects;
+    for (NSValue *rectValue in rects) {
+        CGRect rect = [rectValue CGRectValue];
+        long left = rect.origin.x - FACE_RECT_OVERFLOW;
+        long top = rect.origin.y - FACE_RECT_OVERFLOW;
+        long right = left + rect.size.width + FACE_RECT_OVERFLOW*2;
+        long bottom = top + rect.size.height + FACE_RECT_OVERFLOW*2;
+        dlib::rectangle dlibRect(left, top, right, bottom);
+
+        myConvertedRects.push_back(dlibRect);
+    }
+    return myConvertedRects;
+}
+
+// For debugging, colorize the 68 points returned.
 dlib::rgb_pixel color_for_feature(unsigned long index) {
     if (index < 17) { // jawline
         return dlib::rgb_pixel(0, 255, 255);
@@ -243,22 +260,9 @@ dlib::rgb_pixel color_for_feature(unsigned long index) {
     }
 }
 
-+ (std::vector<dlib::rectangle>)convertCGRectValueArray:(NSArray<NSValue *> *)rects {
-    std::vector<dlib::rectangle> myConvertedRects;
-    for (NSValue *rectValue in rects) {
-        CGRect rect = [rectValue CGRectValue];
-        long left = rect.origin.x - FACE_RECT_OVERFLOW;
-        long top = rect.origin.y - FACE_RECT_OVERFLOW;
-        long right = left + rect.size.width + FACE_RECT_OVERFLOW*2;
-        long bottom = top + rect.size.height + FACE_RECT_OVERFLOW*2;
-        dlib::rectangle dlibRect(left, top, right, bottom);
-
-        myConvertedRects.push_back(dlibRect);
-    }
-    return myConvertedRects;
-}
-
 // MARK: - Head pose
+
+- (double[]) 
 
 - (void)updateHeadPose_v3:(std::vector<dlib::point> &)shape image:(dlib::array2d<dlib::bgr_pixel> &)img width:(size_t)width height:(size_t)height
 {
