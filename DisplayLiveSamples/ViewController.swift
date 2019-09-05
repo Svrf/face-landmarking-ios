@@ -80,7 +80,6 @@ class ViewController: UIViewController {
 
     func addNode(_ name: String) -> SCNNode {
         let node = try! loadFaceNode(name)
-        node.scale = SCNVector3(6,6,6)//3.2,3.2,3.2) // TODO why does this need to be scaled up so much?
         arView.addChildNode(node)
 //        sessionHandler.refNode!.addChildNode(node)
 

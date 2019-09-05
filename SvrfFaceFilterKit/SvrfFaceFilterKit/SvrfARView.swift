@@ -39,13 +39,10 @@ open class SvrfARView: UIView {
     }
 
     public func addChildNode(_ node: SCNNode) {
-        switch renderMode! {
-        case .Svrf:
-            sessionHandler?.refNode?.addChildNode(node)
-        case .ARKit:
-            faceRootNode?.addChildNode(node)
-            print("TODO");
+        if renderMode == .Svrf {
+            node.scale = SCNVector3(6,6,6)//3.2,3.2,3.2) // TODO why does this need to be scaled up so much? Try adjusting detector Z values instead
         }
+        faceRootNode?.addChildNode(node)
     }
 
     public func updateSlider1(_ value: Float) {
@@ -60,6 +57,16 @@ open class SvrfARView: UIView {
         sessionHandler?.calibrateNodes()
     }
 
+    override open func willMove(toWindow newWindow: UIWindow?) {
+        if self.window == nil {
+            if renderMode == .ARKit {
+                let configuration = ARFaceTrackingConfiguration()
+                arSceneView?.session.run(configuration)
+                print("Running sceneView \(arSceneView!) with delegate \(arSceneView!.delegate!)")
+            }
+        }
+    }
+
     override open func layoutSubviews() {
         super.layoutSubviews()
         if renderMode == .ARKit {
@@ -71,20 +78,28 @@ open class SvrfARView: UIView {
     }
 
     public func setWarningLabels(yaw: UILabel, roll: UILabel) {
-        sessionHandler?.yawWarning = yaw
-        sessionHandler?.rollWarning = roll
+        if renderMode == .ARKit {
+            yaw.isHidden = true
+            roll.isHidden = true
+        } else {
+            sessionHandler?.yawWarning = yaw
+            sessionHandler?.rollWarning = roll
+        }
     }
 
     // MARK: - Private methods
 
     private func setup() {
+        faceRootNode = SCNNode()
+
         if ARFaceTrackingConfiguration.isSupported {
             renderMode = .ARKit
 
             arSceneView = ARSCNView(frame: self.bounds)
             arSceneView?.delegate = self
-            let configuration = ARFaceTrackingConfiguration()
-            arSceneView?.session.run(configuration)
+
+            arSceneView?.autoenablesDefaultLighting = true
+            arSceneView?.automaticallyUpdatesLighting = true
 
             self.addSubview(arSceneView!)
         } else {
@@ -153,6 +168,7 @@ extension SvrfARView : ARSCNViewDelegate {
 
     // ARNodeTracking
     public func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+        print("renderer:didAdd:\(node)")
 
         // Hold onto the `faceNode` so that the session does not need to be restarted when switching face filters.
         faceRootNode = node
@@ -165,9 +181,16 @@ extension SvrfARView : ARSCNViewDelegate {
 //        }
     }
 
+    public func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
+        print("renderer:nodeFor:\(anchor)")
+
+        return faceRootNode
+    }
+
     // ARFaceGeometryUpdate
     public func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
 
+        print("renderer:didUpdate:\(node)")
         // FaceAnchor unwrapping
         guard let faceAnchor = anchor as? ARFaceAnchor, let device = renderer.device else { return }
 
@@ -175,5 +198,29 @@ extension SvrfARView : ARSCNViewDelegate {
         // TODO: propagate blend shapes
 //        virtualFaceNode?.update(withFaceAnchor: faceAnchor, andMTLDevice: device)
     }
+
+    /**
+     Called when a node will be updated with data from the given anchor.
+
+     @param renderer The renderer that will render the scene.
+     @param node The node that will be updated.
+     @param anchor The anchor that was updated.
+     */
+    public func renderer(_ renderer: SCNSceneRenderer, willUpdate node: SCNNode, for anchor: ARAnchor) {
+        print("Will update \(node)")
+    }
+
+
+    /**
+     Called when a mapped node has been removed from the scene graph for the given anchor.
+
+     @param renderer The renderer that will render the scene.
+     @param node The node that was removed.
+     @param anchor The anchor that was removed.
+     */
+    public func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor: ARAnchor) {
+        print("didRemove \(node)")
+    }
+
 
 }
